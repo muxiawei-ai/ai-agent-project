@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 客服质量保障项目 · 背景与目标</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ink: #131f33;
+    --ink-soft: #4b5a71;
+    --ink-faint: #93a0b5;
+    --navy: #0e2a55;
+    --accent: #1d5cba;
+    --accent-deep: #143f85;
+    --accent-soft: #ecf2fc;
+    --accent-line: #d4e1f5;
+    --gold: #c9a04e;
+    --line: #e7ebf2;
+    --bg: #fbfcfe;
+    --card: #ffffff;
+    --warn: #96570e;
+    --warn-soft: #fdf5e6;
+    --ok: #187a3c;
+    --ok-soft: #e8f5ec;
+    --shadow-sm: 0 1px 2px rgba(14, 42, 85, .04), 0 2px 8px rgba(14, 42, 85, .04);
+    --shadow-lg: 0 2px 4px rgba(14, 42, 85, .05), 0 12px 40px rgba(14, 42, 85, .10);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 0 36px 88px; }
+
+  /* ═══ 页眉 ═══ */
+  .hero-band {
+    position: relative;
+    background:
+      radial-gradient(ellipse 900px 420px at 88% -10%, rgba(87, 145, 224, .38), transparent 62%),
+      radial-gradient(ellipse 700px 380px at -5% 110%, rgba(31, 92, 186, .5), transparent 60%),
+      linear-gradient(150deg, #0c2348 0%, #12386f 55%, #17498f 100%);
+    color: #fff;
+    padding-bottom: 120px;
+    overflow: hidden;
+  }
+  .hero-band::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(115deg, transparent 42%, rgba(0,0,0,.9));
+    -webkit-mask-image: linear-gradient(115deg, transparent 42%, rgba(0,0,0,.9));
+  }
+  .hero-band::after {
+    content: "";
+    position: absolute; right: -140px; top: -140px;
+    width: 420px; height: 420px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: inset 0 0 0 60px rgba(255,255,255,.025), inset 0 0 0 130px rgba(255,255,255,.02);
+  }
+  .hero { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 64px 36px 0; }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 12.5px; letter-spacing: 4px; font-weight: 600;
+    color: #a9c6ee; margin-bottom: 20px; text-transform: uppercase;
+  }
+  .hero .kicker::before { content: ""; width: 34px; height: 1px; background: var(--gold); }
+  .hero h1 {
+    font-size: 40px; font-weight: 700; line-height: 1.32;
+    letter-spacing: 1px; margin-bottom: 16px;
+  }
+  .hero .subtitle { color: #c4d7f3; font-size: 17px; font-weight: 300; letter-spacing: .4px; }
+  .hero .meta { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .hero .meta span {
+    font-size: 12.5px; color: #dbe7f9; letter-spacing: .5px;
+    background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(4px);
+    border-radius: 99px; padding: 4px 16px;
+  }
+  .hero .meta .fyi {
+    background: var(--gold); color: #0c2348; font-weight: 600; border-color: transparent;
+  }
+
+  /* ═══ 执行摘要（叠入色带） ═══ */
+  .exec {
+    position: relative; z-index: 2;
+    margin-top: -76px;
+    background: var(--card);
+    border: 1px solid var(--accent-line);
+    border-radius: 18px;
+    box-shadow: var(--shadow-lg);
+    padding: 34px 40px 30px;
+  }
+  .exec .exec-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; letter-spacing: 3px;
+    color: var(--accent-deep); margin-bottom: 14px;
+  }
+  .exec .exec-label::after { content: ""; width: 40px; height: 2px; background: var(--gold); }
+  .exec p { margin-bottom: 10px; font-size: 15.5px; }
+  .exec p:last-child { margin-bottom: 0; }
+
+  /* ═══ 数字速览 ═══ */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; margin: 26px 0 0;
+    background: var(--card);
+    border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .stat { padding: 24px 26px 20px; position: relative; }
+  .stat + .stat { border-left: 1px solid var(--line); }
+  .stat::before {
+    content: ""; position: absolute; left: 26px; top: 0;
+    width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent);
+  }
+  .stat .label { font-size: 13px; color: var(--ink-faint); margin-bottom: 6px; letter-spacing: .5px; }
+  .stat .value { font-size: 32px; font-weight: 700; line-height: 1.25; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+  .stat .unit { font-size: 14px; font-weight: 500; color: var(--ink-soft); margin-left: 3px; }
+  .stat .sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; }
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: none; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+  }
+
+  /* ═══ 章节 ═══ */
+  section { margin-top: 76px; }
+  .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 26px; }
+  .sec-head .no {
+    font-size: 40px; font-weight: 800; line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--accent-line);
+    letter-spacing: 1px; font-variant-numeric: tabular-nums;
+    flex: none; transform: translateY(2px);
+  }
+  .sec-head h2 { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .sec-head .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); align-self: center; }
+  p { margin-bottom: 12px; color: var(--ink-soft); font-size: 15px; }
+  p strong { color: var(--ink); }
+  .lead { font-size: 15.5px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    padding: 26px 30px; margin-bottom: 16px;
+  }
+  .card h3 { font-size: 16px; margin-bottom: 8px; }
+  .card p { margin-bottom: 0; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .card-grid { grid-template-columns: 1fr; } }
+  .q-card { border-top: 3px solid var(--accent); }
+  .q-card h3::before { content: "Q  ·  "; color: var(--accent); font-weight: 800; letter-spacing: 1px; }
+
+  /* ═══ 目标（单卡分隔列表） ═══ */
+  .goals { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); overflow: hidden; }
+  .goal { display: flex; gap: 22px; align-items: flex-start; padding: 24px 30px; }
+  .goal + .goal { border-top: 1px solid var(--line); }
+  .goal .num {
+    flex: none; width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(150deg, var(--accent-soft), #dce9fa);
+    color: var(--accent-deep);
+    font-weight: 800; font-size: 17px;
+    display: flex; align-items: center; justify-content: center; margin-top: 3px;
+  }
+  .goal h3 { font-size: 16px; margin-bottom: 5px; }
+  .goal p { margin: 0; font-size: 14.5px; }
+
+  /* ═══ 时间轴 ═══ */
+  .tl-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 36px 30px 28px; }
+  .timeline { display: grid; grid-template-columns: repeat(5, 1fr); }
+  .tl-step { position: relative; padding: 0 8px; }
+  .tl-step .dot-row { display: flex; align-items: center; height: 22px; margin-bottom: 16px; }
+  .tl-step .dot-row::before, .tl-step .dot-row::after { content: ""; flex: 1; height: 2px; background: var(--accent-line); }
+  .tl-step.done .dot-row::before, .tl-step.done .dot-row::after { background: var(--accent); }
+  .tl-step.done + .tl-step .dot-row::before { background: linear-gradient(90deg, var(--accent), var(--accent-line)); }
+  .tl-step:first-child .dot-row::before, .tl-step:last-child .dot-row::after { background: transparent; }
+  .tl-step .dot {
+    flex: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--card); border: 3px solid var(--accent); margin: 0 5px;
+  }
+  .tl-step.done .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .tl-step.key .dot {
+    width: 20px; height: 20px;
+    border-color: var(--navy); background: var(--navy);
+    box-shadow: 0 0 0 5px var(--accent-soft);
+  }
+  .tl-step .when {
+    text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--accent-deep); margin-bottom: 5px;
+  }
+  .tl-step.key .when { color: var(--navy); }
+  .tl-step .what { text-align: center; font-size: 14px; color: var(--ink); font-weight: 700; line-height: 1.5; }
+  .tl-step .desc { text-align: center; font-size: 12.5px; color: var(--ink-faint); line-height: 1.6; margin-top: 4px; }
+  .tl-step .badge {
+    display: block; width: fit-content; margin: 8px auto 0;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    color: var(--ok); background: var(--ok-soft); border-radius: 99px; padding: 1px 10px;
+  }
+  @media (max-width: 760px) {
+    .timeline { grid-template-columns: 1fr; }
+    .tl-step { display: grid; grid-template-columns: 22px 1fr; column-gap: 16px; padding: 0 0 24px; }
+    .tl-step .dot-row { flex-direction: column; height: auto; margin: 0; grid-column: 1; grid-row: 1 / span 4; }
+    .tl-step .dot-row::before, .tl-step .dot-row::after { width: 2px; height: auto; flex: 1; }
+    .tl-step .dot { margin: 5px 0; }
+    .tl-step .when, .tl-step .what, .tl-step .desc { text-align: left; grid-column: 2; }
+    .tl-step .badge { margin: 6px 0 0; grid-column: 2; }
+    .tl-step:last-child { padding-bottom: 0; }
+  }
+  .tl-note { margin-top: 20px; font-size: 13px; color: var(--ink-faint); padding-top: 16px; border-top: 1px dashed var(--line); }
+
+  /* ═══ 阶段 ═══ */
+  .phase-card { display: grid; grid-template-columns: 118px 1fr; overflow: hidden; padding: 0; }
+  .phase-card .side {
+    background: linear-gradient(165deg, var(--navy), var(--accent));
+    color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 24px 14px;
+  }
+  .phase-card.after .side { background: linear-gradient(165deg, #1a4d96, #3172cc); }
+  .phase-card .side .ph-no { font-size: 26px; font-weight: 800; opacity: .95; }
+  .phase-card .side .ph-lb { font-size: 12px; letter-spacing: 3px; color: rgba(255,255,255,.85); writing-mode: initial; }
+  .phase-card .body { padding: 26px 30px; }
+  .phase-card .body h3 { font-size: 17px; margin-bottom: 8px; }
+  @media (max-width: 640px) {
+    .phase-card { grid-template-columns: 1fr; }
+    .phase-card .side { flex-direction: row; padding: 12px; }
+  }
+
+  /* ═══ 原则 ═══ */
+  .principles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .principles { grid-template-columns: 1fr; } }
+  .principle {
+    position: relative;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; box-shadow: var(--shadow-sm); padding: 22px 24px 20px;
+  }
+  .principle::before {
+    content: ""; position: absolute; left: 24px; top: 0;
+    width: 34px; height: 3px; border-radius: 0 0 3px 3px; background: var(--gold);
+  }
+  .principle b { display: block; font-size: 15.5px; margin-bottom: 5px; letter-spacing: .3px; }
+  .principle span { font-size: 13.5px; color: var(--ink-soft); }
+
+  .note {
+    background: var(--warn-soft); border: 1px solid #f0dcb2; border-radius: 14px;
+    padding: 16px 22px; font-size: 14px; color: var(--warn);
+  }
+
+  /* ═══ 上线标准 ═══ */
+  .gate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .gate-grid { grid-template-columns: 1fr; } }
+  .gate {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    padding: 15px 20px;
+    display: flex; align-items: flex-start; gap: 13px;
+    font-size: 14.5px; color: var(--ink-soft); line-height: 1.7;
+  }
+  .gate .tick {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ok-soft); color: var(--ok);
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; margin-top: 3px;
+  }
+  .gate strong { color: var(--ink); }
+
+  /* ═══ 角色表 ═══ */
+  table {
+    width: 100%; border-collapse: collapse; background: var(--card);
+    border-radius: 16px; overflow: hidden; border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm); font-size: 14px;
+  }
+  th, td { text-align: left; padding: 14px 20px; }
+  thead th {
+    background: var(--navy); color: #fff; font-weight: 600;
+    letter-spacing: 1px; white-space: nowrap; font-size: 13.5px;
+  }
+  tbody tr + tr td { border-top: 1px solid var(--line); }
+  tbody tr:nth-child(even) td { background: #f8fafd; }
+  td:first-child { white-space: nowrap; font-weight: 700; color: var(--accent-deep); }
+  td { color: var(--ink-soft); }
+
+  footer {
+    margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: 13px;
+    display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  footer .mark { letter-spacing: 2px; font-weight: 600; color: var(--accent-deep); flex: none; }
+
+  @media print {
+    body { background: #fff; }
+    .page, .hero { padding-left: 0; padding-right: 0; max-width: none; }
+    .hero-band, thead th, .phase-card .side { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card, .gate, table, .stat, .principle, .exec, .goals, .tl-wrap { break-inside: avoid; box-shadow: none; }
+    section { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero-band">
+  <header class="hero">
+    <div class="kicker">项目汇报 · For Information</div>
+    <h1>AI 客服质量保障项目</h1>
+    <div class="subtitle">让 AI 客服"答得准、不乱答"，并在上线后持续可控、可改进</div>
+    <div class="meta">
+      <span class="fyi">仅供知悉 · 本次无需决策事项</span>
+      <span>2026 年 7 月</span>
+      <span>面向：管理层</span>
+    </div>
+  </header>
+</div>
+
+<div class="page">
+
+  <div class="exec">
+    <div class="exec-label">执行摘要</div>
+    <p>
+      公司 AI 客服计划 <strong>9 月启动 Pilot 试点、10 月正式上线</strong>。为确保上线质量，本项目建立了两道保障：<strong>上线前</strong>，通过系统化的业务验收测试（UAT），把知识库问题在上线前找出来并整改，用客观标准证明 AI"该答的答对、不该答的不答"；<strong>上线后</strong>，通过持续的数据质量监控和月度复盘，让真实客户数据驱动知识库不断优化。
+    </p>
+    <p>
+      目前上线前 UAT 的完整方案与执行工具包已就绪，上线后运营方案业务设计已确认、即将进入 IT 评审。项目当前投入约 5 人，整体进度可支撑 9 月 Pilot 目标。<strong>本次汇报为进展知悉，暂无需管理层决策或资源协调。</strong>
+    </p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">正式上线目标</div>
+      <div class="value">10<span class="unit">月</span></div>
+      <div class="sub">2026 年</div>
+    </div>
+    <div class="stat">
+      <div class="label">Pilot 试点</div>
+      <div class="value">9<span class="unit">月</span></div>
+      <div class="sub">小范围真实验证</div>
+    </div>
+    <div class="stat">
+      <div class="label">当前项目投入</div>
+      <div class="value">~5<span class="unit">人</span></div>
+      <div class="sub">业务 / 合规 / 测试 / IT</div>
+    </div>
+    <div class="stat">
+      <div class="label">上线后月数据量</div>
+      <div class="value">1–10<span class="unit">万条</span></div>
+      <div class="sub">客户问答记录（预估）</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="no">01</span><h2>项目背景</h2><span class="rule"></span></div>
+    <p class="lead">
+      公司即将上线 AI 客服系统。这套系统的工作方式是：<strong>客户用自然语言提问，AI 负责"听懂"问题，然后从公司统一维护的问答知识库中取出预先批准的标准答案回复客户</strong>。AI 不会自己编写答案——客户看到的每一句回复，都应当是业务和合规事先确认过的内容。
+    </p>
+    <p>这种模式的好处是回复口径可控，但也带来两个必须回答的问题：</p>
+    <div class="card-grid">
+      <div class="card q-card">
+        <h3>知识库本身够不够好？</h3>
+        <p>现有问答是否有重复、互相冲突、覆盖不全或存在合规风险？如果知识库有问题，AI 答得再"准"也是错的。</p>
+      </div>
+      <div class="card q-card">
+        <h3>AI 找答案找得准不准？</h3>
+        <p>客户换着花样问，AI 能否找到正确答案？遇到超出业务范围、敏感或高风险的问题，AI 会不会不懂装懂、强行作答？</p>
+      </div>
+    </div>
+    <p style="margin-top:16px;">
+      此外，上线不是终点。客户每天的真实提问会不断暴露新问题，<strong>需要一套持续的机制把上线后的真实数据用起来</strong>——发现问题、改进知识库、再验证，形成闭环。本项目就是为了系统性地回答上述问题而设立的。
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">02</span><h2>主要目标</h2><span class="rule"></span></div>
+    <div class="goals">
+      <div class="goal">
+        <div class="num">1</div>
+        <div><h3>把知识库的问题在上线前找出来</h3>
+        <p>系统性地体检现有问答内容，识别重复、边界模糊、覆盖缺口和合规风险，推动业务在上线前完成整改。</p></div>
+      </div>
+      <div class="goal">
+        <div class="num">2</div>
+        <div><h3>用可信的测试证明 AI 客服"该答的答对、不该答的不答"</h3>
+        <p>既验证知识库内的问题能命中正确答案，也验证范围外、敏感和高风险的问题会被妥善引导（如转人工），而不是被强行回答。</p></div>
+      </div>
+      <div class="goal">
+        <div class="num">3</div>
+        <div><h3>把验收标准变成客观、可复查的结论</h3>
+        <p>上线与否依据事先约定的明确标准判定，每一条测试结果都可以追溯到具体的问题、期望答案和实际回复，不依赖任何人的主观感觉。</p></div>
+      </div>
+      <div class="goal">
+        <div class="num">4</div>
+        <div><h3>沉淀可长期复用的质量资产</h3>
+        <p>确认过的测试用例、失败案例都沉淀为带版本的回归测试集。以后每次知识库更新，都能快速重测，不用从零开始。</p></div>
+      </div>
+      <div class="goal">
+        <div class="num">5</div>
+        <div><h3>建立上线后的持续改进闭环</h3>
+        <p>持续获取上线后的脱敏客户交互数据，通过日常检查和月度报告发现真实场景中的问题，驱动知识库持续优化，并回到测试环节验证改进效果。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">03</span><h2>时间计划</h2><span class="rule"></span></div>
+    <div class="tl-wrap">
+      <div class="timeline">
+        <div class="tl-step done">
+          <div class="dot-row"><div class="dot"></div></div>
+          <div class="when">7 月</div>
+          <div class="what">方案就绪</div>
+          <div class="desc">UAT 方案与工具包完成，流程试跑</div>
+          <span class="badge">已完成</span>
+        </div>
+        <div class="tl-step">
+          <div class="dot-row"><div class="dot"></div></div>
+          <div class="when">7–8 月</div>
+          <div class="what">UAT 执行与整改</div>
+          <div class="desc">知识库体检、测试执行、问题整改</div>
+        </div>
+        <div class="tl-step key">
+          <div class="dot-row"><div class="dot"></div></div>
+          <div class="when">9 月</div>
+          <div class="what">Pilot 试点</div>
+          <div class="desc">小范围真实场景验证</div>
+        </div>
+        <div class="tl-step key">
+          <div class="dot-row"><div class="dot"></div></div>
+          <div class="when">10 月</div>
+          <div class="what">正式上线</div>
+          <div class="desc">达成全部底线标准后发布</div>
+        </div>
+        <div class="tl-step">
+          <div class="dot-row"><div class="dot"></div></div>
+          <div class="when">10 月起</div>
+          <div class="what">持续运营</div>
+          <div class="desc">数据监控与月度复盘，前 3 个月强化复核</div>
+        </div>
+      </div>
+      <div class="tl-note">时间为当前计划口径；Pilot 及上线以全部验收标准达成为前提，具体日期以届时验收结论为准。</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">04</span><h2>项目分两个阶段</h2><span class="rule"></span></div>
+    <div class="card phase-card">
+      <div class="side">
+        <div class="ph-no">壹</div>
+        <div class="ph-lb">上线前</div>
+      </div>
+      <div class="body">
+        <h3>业务验收测试（UAT）</h3>
+        <p>
+          先给知识库做一次全面体检，由业务确认整改；然后生成贴近真实客户口吻的测试问题，覆盖正常提问、容易混淆的提问和敏感高风险提问；业务和合规逐条审批测试的"标准答案"；最后像真实客户一样向 AI 客服提问，客观比对实际回复与标准答案，得出验收结论。
+          为保证结论可信，验收还包含一轮<strong>独立盲测</strong>——用一批事先没有用来调优系统的全新问题做最终检验，相当于"闭卷考试"。
+        </p>
+      </div>
+    </div>
+    <div class="card phase-card after">
+      <div class="side">
+        <div class="ph-no">贰</div>
+        <div class="ph-lb">上线后</div>
+      </div>
+      <div class="body">
+        <h3>数据质量与持续运营</h3>
+        <p>
+          上线后，通过只读、可审计的方式持续获取脱敏后的客户问答数据（预计每月 1 万到 10 万条）。系统每天自动做数据完整性和异常检查，业务定期借助公司模型对高风险数据做复核，每月形成正式报告。
+          所有分析结论都以"待业务确认的草案"呈现，<strong>知识库的任何修改仍由业务和合规按现有流程审批</strong>，再通过回归测试验证效果，形成"发现—整改—验证"的闭环。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">05</span><h2>项目坚持的几条原则</h2><span class="rule"></span></div>
+    <div class="principles">
+      <div class="principle">
+        <b>宁可不答，不能错答</b>
+        <span>对敏感、高风险和超范围的问题，AI 转人工或礼貌拒答，好过给出一个错误或越权的回答。</span>
+      </div>
+      <div class="principle">
+        <b>AI 只出草稿，人来做决定</b>
+        <span>AI 工具只提供候选和建议；客户最终看到什么、知识库怎么改，决定权始终在业务和合规手中。</span>
+      </div>
+      <div class="principle">
+        <b>验收结论必须客观</b>
+        <span>测试是否通过依据明确规则自动判定，不接受"意思差不多就算对"的模糊判断。</span>
+      </div>
+      <div class="principle">
+        <b>一切可追溯</b>
+        <span>知识库、测试集、执行记录和报告都有版本，任何一个结论都能查到它的来龙去脉。</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">06</span><h2>上线的底线标准</h2><span class="rule"></span></div>
+    <p>以下标准全部达成，才具备上线条件（其余量化指标由业务和合规在执行前另行约定）：</p>
+    <div class="gate-grid">
+      <div class="gate"><span class="tick">✓</span><span><strong>敏感与合规红线问题</strong>处置正确率必须达到 100%</span></div>
+      <div class="gate"><span class="tick">✓</span><span><strong>超出业务范围的问题</strong>零"强行作答"</span></div>
+      <div class="gate"><span class="tick">✓</span><span><strong>高风险业务问题</strong>零答非所问</span></div>
+      <div class="gate"><span class="tick">✓</span><span>不允许出现任何<strong>来源不明的回复内容</strong>（所有回复必须出自批准的知识库或话术）</span></div>
+      <div class="gate"><span class="tick">✓</span><span>所有必需的<strong>业务与合规审批</strong>全部完成</span></div>
+      <div class="gate"><span class="tick">✓</span><span>常规测试与独立盲测<strong>两套结果分别达标</strong></span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">07</span><h2>团队与角色</h2><span class="rule"></span></div>
+    <p>项目当前投入约 5 人，覆盖以下角色（部分角色由同一人兼任）：</p>
+    <table>
+      <thead><tr><th>角色</th><th>在项目中的职责</th></tr></thead>
+      <tbody>
+        <tr><td>业务验收人</td><td>确认知识库内容与测试期望，决定缺口如何处理，给出上线意见；上线后确认问题、批准优化建议</td></tr>
+        <tr><td>合规审核人</td><td>审核敏感、承诺、收费、法律、个人信息等内容及相关测试集与话术</td></tr>
+        <tr><td>测试执行人</td><td>按冻结的测试清单执行测试，完整记录 AI 客服的实际回复</td></tr>
+        <tr><td>IT</td><td>提供测试环境与数据接口，建设和运维数据管线，诊断技术异常</td></tr>
+        <tr><td>产品负责人</td><td>对转人工条件、多问题处理等尚未定义的产品规则作出决策</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="no">08</span><h2>当前进展与下一步</h2><span class="rule"></span></div>
+    <div class="card">
+      <p>
+        目前已完成：<strong>上线前 UAT 的完整方案与执行工具包</strong>（含测试生成、审核、判分的全套流程与模板），以及<strong>上线后数据质量与持续运营的业务设计</strong>（业务侧已确认）。
+      </p>
+    </div>
+    <div class="note">
+      下一步：7–8 月完成 UAT 正式执行与知识库整改，上线后运营方案同步进入 IT 可行性评审，确保 9 月 Pilot、10 月上线按计划推进。
+    </div>
+  </section>
+
+  <footer>
+    <span>本文档为项目背景与目标的汇报沟通版（仅供知悉），刻意省略了具体的技术实现细节。完整方案见《AI 客服 UAT 测试方案（增强版）》与《AI 客服上线后数据质量与持续运营方案》。</span>
+    <span class="mark">2026 · 07</span>
+  </footer>
+
+</div>
+</body>
+</html>
