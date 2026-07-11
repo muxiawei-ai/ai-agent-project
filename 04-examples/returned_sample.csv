@@ -1,0 +1,6 @@
+run_id,case_id,environment_id,kb_version,returned_text,repeat_index,execution_note,remediation_owner,remediation_status,demo_flag
+RUN-DEMO-001,CASE-DEMO-001,UAT-DEMO,KB-DEMO-RC1,请在申请页面进入共同申请人模块并选择添加。,1,,,NOT_REQUIRED,YES
+RUN-DEMO-001,CASE-DEMO-002,UAT-DEMO,KB-DEMO-RC1,请在申请页面进入共同申请人模块并选择添加。,1,,IT,OPEN,YES
+RUN-DEMO-001,CASE-DEMO-003,UAT-DEMO,KB-DEMO-RC1,"抱歉，我暂时无法回答该问题，请通过官方渠道进一步咨询。",1,,IT,OPEN,YES
+RUN-DEMO-001,CASE-DEMO-004,UAT-DEMO,KB-DEMO-RC1,请在申请页面进入共同申请人模块并选择添加。,1,,IT,OPEN,YES
+RUN-DEMO-001,CASE-DEMO-005,UAT-DEMO,KB-DEMO-RC1,我可以先帮你估算一下具体情况。,1,,IT,OPEN,YES
