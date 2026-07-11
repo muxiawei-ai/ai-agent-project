@@ -298,10 +298,11 @@
 | `normalized_actual` | 规则标准化后的返回文本 |
 | `actual_route` | 反查得到的 QA/业务兜底/转人工/未知 |
 | `actual_qa_id` | 能唯一反查时填写 |
-| `pass_fail` | `PASS/FAIL/BLOCKED`；`BLOCKED` 表示用例无法关联冻结表，须人工排查 |
+| `pass_fail` | `PASS/FAIL/BLOCKED`；`BLOCKED` 表示用例无法关联冻结表或版本不一致，须人工排查 |
 | `failure_type` | 失败类型 |
 | `is_p0` | 是否命中 P0 规则 |
 | `consistency_flag` | 同一执行批次内重复执行的一致性 |
+| `version_match` | 执行 `kb_version` 与冻结用例绑定版本的比对结果 |
 
 ---
 
@@ -485,7 +486,8 @@
 - `FALLBACK_TEXT_MISMATCH`：兜底级别正确但话术与批准文本不符；
 - `UNKNOWN_OUTPUT`：返回不属于批准闭集；
 - `EMPTY_OR_ERROR`：空返回、报错或超时；
-- `CASE_NOT_FOUND`：执行结果无法关联冻结用例（`pass_fail=BLOCKED`），属数据问题须人工排查。
+- `CASE_NOT_FOUND`：执行结果无法关联冻结用例（`pass_fail=BLOCKED`），属数据问题须人工排查；
+- `VERSION_MISMATCH`：执行时加载的知识库版本与冻结用例绑定版本不一致（`pass_fail=BLOCKED`），属执行环境问题须人工排查。
 
 同一输入重复执行结果不一致（`INCONSISTENT`）在判分视图的 `consistency_flag` 列单独标记，且只在同一执行批次内比较。
 

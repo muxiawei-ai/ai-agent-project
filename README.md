@@ -82,7 +82,7 @@
 
 ### 8. 黑盒执行
 
-把 `04_Frozen_Cases` 的 `Q` 送入 AI 客服，将实际输出原样写入 `05_Run_Results`。同时记录执行批次、环境和实际加载的知识库版本。
+把 `04_Frozen_Cases` 的 `Q` 送入 AI 客服，将实际输出原样写入 `05_Run_Results`。同时记录执行批次、环境和实际加载的知识库版本。执行 `kb_version` 与冻结版本不一致的行会被自动判为 `BLOCKED/VERSION_MISMATCH`。
 
 ### 9. 确定性判分
 
@@ -112,7 +112,7 @@ JSONL 比直接生成 CSV 更适合包含逗号、引号和长文本的用户问
 
 ## 五、首次试跑
 
-先使用 `04-examples` 的完全虚构数据跑通 Prompt、导入、投影、执行和判分。确认工作簿能分别识别 PASS、WRONG_ROUTE、FALSE_FALLBACK、FORCED_ANSWER、UNKNOWN_OUTPUT 和 BLOCKED（示例中的 CASE-DEMO-999）后，再替换为真实内网数据。
+先使用 `04-examples` 的完全虚构数据跑通 Prompt、导入、投影、执行和判分。打开工作簿 `99_Selfcheck`，确认自检“全部通过”（自检覆盖 PASS、WRONG_ROUTE、FALSE_FALLBACK、FORCED_ANSWER、UNKNOWN_OUTPUT、BLOCKED、审批硬门和版本校验），再替换为真实内网数据。此后任何人修改模板公式或结构，都必须先让自检回到全部通过。
 
 ## 六、上线硬门
 
