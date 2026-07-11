@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 客服质量保障项目 · 背景与目标</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ink: #1a2332;
+    --ink-soft: #4a5568;
+    --ink-faint: #8492a6;
+    --accent: #1f5fbf;
+    --accent-soft: #eaf1fb;
+    --line: #e3e8ef;
+    --bg: #f7f9fc;
+    --card: #ffffff;
+    --warn: #b45309;
+    --warn-soft: #fdf3e3;
+    --ok: #15803d;
+  }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.75;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 48px 32px 72px; }
+
+  /* 页眉 */
+  .hero { border-bottom: 3px solid var(--accent); padding-bottom: 28px; margin-bottom: 40px; }
+  .hero .kicker { color: var(--accent); font-size: 14px; letter-spacing: 2px; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 30px; font-weight: 700; line-height: 1.35; margin-bottom: 12px; }
+  .hero .subtitle { color: var(--ink-soft); font-size: 16px; }
+  .hero .meta { margin-top: 16px; color: var(--ink-faint); font-size: 13px; }
+  .hero .meta span + span::before { content: "·"; margin: 0 10px; color: var(--line); }
+
+  /* 章节 */
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 20px; font-weight: 700; margin-bottom: 18px;
+    padding-left: 12px; border-left: 4px solid var(--accent);
+  }
+  p { margin-bottom: 12px; color: var(--ink-soft); font-size: 15px; }
+  p strong { color: var(--ink); }
+
+  /* 卡片 */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 22px 24px; margin-bottom: 14px;
+  }
+  .card h3 { font-size: 16px; margin-bottom: 8px; }
+  .card p { margin-bottom: 0; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .card-grid { grid-template-columns: 1fr; } }
+
+  /* 编号目标 */
+  .goal { display: flex; gap: 16px; align-items: flex-start; }
+  .goal + .goal { margin-top: 4px; }
+  .goal .num {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: center; margin-top: 2px;
+  }
+
+  /* 阶段 */
+  .phase { position: relative; padding-left: 26px; }
+  .phase::before {
+    content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--line);
+  }
+  .phase .card { position: relative; }
+  .phase .card::before {
+    content: ""; position: absolute; left: -24px; top: 26px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--accent-soft);
+  }
+  .tag {
+    display: inline-block; font-size: 12px; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    border-radius: 4px; padding: 2px 10px; margin-bottom: 8px;
+  }
+
+  /* 上线标准 */
+  .gate-list { list-style: none; }
+  .gate-list li {
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 18px; margin-bottom: 10px;
+    display: flex; align-items: baseline; gap: 12px; font-size: 15px; color: var(--ink-soft);
+  }
+  .gate-list li::before { content: "✓"; color: var(--ok); font-weight: 700; flex: none; }
+  .gate-list li strong { color: var(--ink); }
+
+  /* 原则 */
+  .principle { border-left: 3px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 10px; }
+  .principle b { display: block; font-size: 15px; margin-bottom: 2px; }
+  .principle span { font-size: 14px; color: var(--ink-soft); }
+
+  /* 提示框 */
+  .note {
+    background: var(--warn-soft); border: 1px solid #f3ddb4; border-radius: 8px;
+    padding: 14px 18px; font-size: 14px; color: var(--warn);
+  }
+
+  /* 角色表 */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  th { background: var(--accent-soft); color: var(--ink); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink); }
+  td { color: var(--ink-soft); }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+
+  @media print {
+    body { background: #fff; }
+    .page { padding: 0; max-width: none; }
+    .card, .gate-list li, table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="kicker">项目介绍 · 汇报沟通版</div>
+    <h1>AI 客服质量保障项目<br>背景与主要目标</h1>
+    <div class="subtitle">让 AI 客服"答得准、不乱答"，并在上线后持续可控、可改进</div>
+    <div class="meta">
+      <span>2026 年 7 月</span>
+      <span>版本 草案 V1</span>
+      <span>面向：业务、合规、IT 及管理层</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>一、项目背景</h2>
+    <p>
+      公司即将上线 AI 客服系统。这套系统的工作方式是：<strong>客户用自然语言提问，AI 负责"听懂"问题，然后从公司统一维护的问答知识库中取出预先批准的标准答案回复客户</strong>。AI 不会自己编写答案——客户看到的每一句回复，都应当是业务和合规事先确认过的内容。
+    </p>
+    <p>
+      这种模式的好处是回复口径可控，但也带来两个必须回答的问题：
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>知识库本身够不够好？</h3>
+        <p>现有问答是否有重复、互相冲突、覆盖不全或存在合规风险？如果知识库有问题，AI 答得再"准"也是错的。</p>
+      </div>
+      <div class="card">
+        <h3>AI 找答案找得准不准？</h3>
+        <p>客户换着花样问，AI 能否找到正确答案？遇到超出业务范围、敏感或高风险的问题，AI 会不会不懂装懂、强行作答？</p>
+      </div>
+    </div>
+    <p style="margin-top:14px;">
+      此外，上线不是终点。客户每天的真实提问会不断暴露新问题，<strong>需要一套持续的机制把上线后的真实数据用起来</strong>——发现问题、改进知识库、再验证，形成闭环。
+    </p>
+    <p>
+      本项目就是为了系统性地回答上述问题而设立的，覆盖<strong>上线前验收</strong>和<strong>上线后持续运营</strong>两个阶段。
+    </p>
+  </section>
+
+  <section>
+    <h2>二、主要目标</h2>
+    <div class="card"><div class="goal">
+      <div class="num">1</div>
+      <div><h3>把知识库的问题在上线前找出来</h3>
+      <p>系统性地体检现有问答内容，识别重复、边界模糊、覆盖缺口和合规风险，推动业务在上线前完成整改。</p></div>
+    </div></div>
+    <div class="card"><div class="goal">
+      <div class="num">2</div>
+      <div><h3>用可信的测试证明 AI 客服"该答的答对、不该答的不答"</h3>
+      <p>既验证知识库内的问题能命中正确答案，也验证范围外、敏感和高风险的问题会被妥善引导（如转人工），而不是被强行回答。</p></div>
+    </div></div>
+    <div class="card"><div class="goal">
+      <div class="num">3</div>
+      <div><h3>把验收标准变成客观、可复查的结论</h3>
+      <p>上线与否依据事先约定的明确标准判定，每一条测试结果都可以追溯到具体的问题、期望答案和实际回复，不依赖任何人的主观感觉。</p></div>
+    </div></div>
+    <div class="card"><div class="goal">
+      <div class="num">4</div>
+      <div><h3>沉淀可长期复用的质量资产</h3>
+      <p>确认过的测试用例、失败案例都沉淀为带版本的回归测试集。以后每次知识库更新，都能快速重测，不用从零开始。</p></div>
+    </div></div>
+    <div class="card"><div class="goal">
+      <div class="num">5</div>
+      <div><h3>建立上线后的持续改进闭环</h3>
+      <p>持续获取上线后的脱敏客户交互数据，通过日常检查和月度报告发现真实场景中的问题，驱动知识库持续优化，并回到测试环节验证改进效果。</p></div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>三、项目分两个阶段</h2>
+    <div class="phase">
+      <div class="card">
+        <span class="tag">阶段一 · 上线前</span>
+        <h3>业务验收测试（UAT）</h3>
+        <p>
+          先给知识库做一次全面体检，由业务确认整改；然后生成贴近真实客户口吻的测试问题，覆盖正常提问、容易混淆的提问和敏感高风险提问；业务和合规逐条审批测试的"标准答案"；最后像真实客户一样向 AI 客服提问，客观比对实际回复与标准答案，得出验收结论。
+          为保证结论可信，验收还包含一轮<strong>独立盲测</strong>——用一批事先没有用来调优系统的全新问题做最终检验，相当于"闭卷考试"。
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">阶段二 · 上线后</span>
+        <h3>数据质量与持续运营</h3>
+        <p>
+          上线后，通过只读、可审计的方式持续获取脱敏后的客户问答数据（预计每月 1 万到 10 万条）。系统每天自动做数据完整性和异常检查，业务定期借助公司模型对高风险数据做复核，每月形成正式报告。
+          所有分析结论都以"待业务确认的草案"呈现，<strong>知识库的任何修改仍由业务和合规按现有流程审批</strong>，再通过回归测试验证效果，形成"发现—整改—验证"的闭环。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>四、项目坚持的几条原则</h2>
+    <div class="principle">
+      <b>宁可不答，不能错答</b>
+      <span>对敏感、高风险和超范围的问题，AI 转人工或礼貌拒答，好过给出一个错误或越权的回答。</span>
+    </div>
+    <div class="principle">
+      <b>AI 只出草稿，人来做决定</b>
+      <span>无论是测试内容还是上线后的分析结论，AI 工具只提供候选和建议；客户最终看到什么、知识库怎么改，决定权始终在业务和合规手中。</span>
+    </div>
+    <div class="principle">
+      <b>验收结论必须客观</b>
+      <span>测试是否通过依据明确规则自动判定，不接受"意思差不多就算对"的模糊判断。</span>
+    </div>
+    <div class="principle">
+      <b>一切可追溯</b>
+      <span>知识库、测试集、执行记录和报告都有版本，任何一个结论都能查到它的来龙去脉。</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>五、上线的底线标准</h2>
+    <p>以下标准全部达成，才具备上线条件（其余量化指标由业务和合规在执行前另行约定）：</p>
+    <ul class="gate-list">
+      <li><strong>敏感与合规红线问题</strong>处置正确率必须达到 100%</li>
+      <li><strong>超出业务范围的问题</strong>零"强行作答"</li>
+      <li><strong>高风险业务问题</strong>零答非所问</li>
+      <li>不允许出现任何<strong>来源不明的回复内容</strong>（所有回复必须出自批准的知识库或话术）</li>
+      <li>所有必需的<strong>业务与合规审批</strong>全部完成</li>
+      <li>常规测试与独立盲测<strong>两套结果分别达标</strong></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>六、各方角色</h2>
+    <table>
+      <tr><th>角色</th><th>在项目中的职责</th></tr>
+      <tr><td>业务验收人</td><td>确认知识库内容与测试期望，决定缺口如何处理，给出上线意见；上线后确认问题、批准优化建议</td></tr>
+      <tr><td>合规审核人</td><td>审核敏感、承诺、收费、法律、个人信息等内容及相关测试集与话术</td></tr>
+      <tr><td>测试执行人</td><td>按冻结的测试清单执行测试，完整记录 AI 客服的实际回复</td></tr>
+      <tr><td>IT</td><td>提供测试环境与数据接口，建设和运维数据管线，诊断技术异常</td></tr>
+      <tr><td>产品负责人</td><td>对转人工条件、多问题处理等尚未定义的产品规则作出决策</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>七、当前进展</h2>
+    <div class="card">
+      <p>
+        目前已完成：<strong>上线前 UAT 的完整方案与执行工具包</strong>（含测试生成、审核、判分的全套流程与模板），以及<strong>上线后数据质量与持续运营的业务设计</strong>（业务侧已确认）。
+      </p>
+    </div>
+    <div class="note">
+      下一步：上线后运营方案进入 IT 可行性评审与实施计划阶段；UAT 按方案先以虚构数据完成流程试跑，再接入真实知识库正式执行。
+    </div>
+  </section>
+
+  <footer>
+    本文档为项目背景与目标的汇报沟通版，刻意省略了具体的技术实现细节。完整方案见《AI 客服 UAT 测试方案（增强版）》与《AI 客服上线后数据质量与持续运营方案》。
+  </footer>
+
+</div>
+</body>
+</html>
