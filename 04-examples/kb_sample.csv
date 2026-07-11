@@ -1,0 +1,3 @@
+qa_id,canonical_question,answer_text,intent_name,scope_in,scope_out,roles_applicable,stages_applicable,preconditions,risk_level,compliance_sensitive,confusable_with,duplicate_answer_group,kb_version
+QA-DEMO-001,如何添加共同申请人,请在申请页面进入共同申请人模块并选择添加。,添加共同申请人,申请填写阶段添加共同申请人,共同申请人收到邀请后的确认流程,主申请人,填写,尚未提交申请,MEDIUM,NO,QA-DEMO-002,,KB-DEMO-RC1
+QA-DEMO-002,共同申请人如何确认,共同申请人收到邀请后请进入待办页面完成确认。,共同申请人确认,受邀共同申请人确认邀请,主申请人添加共同申请人,共同申请人,签约,已经收到邀请,MEDIUM,NO,QA-DEMO-001,,KB-DEMO-RC1
