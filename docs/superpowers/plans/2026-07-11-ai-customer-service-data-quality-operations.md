@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a read-only, auditable pipeline that extracts already-anonymized AI customer-service interactions, enforces deterministic data-quality gates, creates complete audit exports and strong-model analysis batches, and produces reviewed monthly PDF/Excel reports without modifying production systems.
+**Goal:** Build a read-only, auditable pipeline that extracts already-anonymized AI customer-service interactions, enforces deterministic data-quality gates, creates complete audit exports and strong-model analysis batches, and produces reviewed monthly PDF/Excel reports without modifying production systems. Confirmed single-turn findings may be exported as *draft* UAT regression candidates only after human review.
 
 **Architecture:** A Python 3.11 command-line application reads paginated records through an adapter interface, records checkpoints and run state in SQLite, writes immutable Parquet/CSV artifacts, and blocks release when hard quality gates fail. Separate modules create model batches, import strong-model JSONL findings as unconfirmed candidates, build Excel/PDF reports, and send email through company SMTP; scheduling remains an external IT responsibility.
 
@@ -19,12 +19,15 @@
 - Complete interaction exports never travel as email attachments; email contains PDF/Excel reports and a company-controlled storage location.
 - Daily deterministic checks remain active after the weekly strong-model review is reduced to monthly.
 - File and schema versions are explicit; silent field drops, coercions, or API schema changes are release-blocking failures.
+- The UAT execution package is currently a **single-turn** contract. A multi-turn interaction finding is evidence for analysis and remediation, but must never be projected directly into a single-turn UAT case; it requires a separately approved multi-turn UAT design.
+- A post-launch finding never changes the production knowledge base, UAT expected answer, UAT approval status, or compliance rule. It can only create a reviewable draft with evidence and a proposed action.
+- Any regression export must use the UAT v1.4 Candidate_Cases contract, contain a unique `generator_run_id`, and require business/compliance approvals before it can enter `04_Frozen_Cases`.
 
 ---
 
 ## 1. Scope and Repository Layout
 
-The repository currently contains documentation, prompts, examples, and an Excel UAT workbook but no executable application. Add the operations pipeline as a focused Python package without changing existing UAT assets.
+The repository currently contains documentation, prompts, examples, and the UAT v1.4 Excel workbook but no executable application. Add the operations pipeline as a focused Python package. It may create a review-only UAT-candidate export, but must not overwrite the UAT workbook, freeze cases, or modify existing UAT rules.
 
 ```text
 pyproject.toml
@@ -353,8 +356,10 @@ intent_id: str | None = None
 kb_version: str | None = None
 response_time_ms: int | None = None
 channel: str = "UNKNOWN"
-language: str | None = None
-sequence_inferred: bool = False
+    language: str | None = None
+    interaction_scope: str = "UNKNOWN"  # SINGLE_TURN / MULTI_TURN / UNKNOWN
+    conversation_turn_count: int | None = None
+    sequence_inferred: bool = False
 qa_id_inferred: bool = False
 kb_version_inferred: bool = False
 ```
@@ -704,7 +709,7 @@ Add normal records across multiple QA IDs, channels, weeks, and knowledge-base v
 `BatchPlanner.build()` must:
 
 - include all mandatory exception records;
-- group normal records by `(matched_qa_id or "NO_QA_ID", channel, kb_version or "NO_KB_VERSION", business_week)`;
+- group normal records by `(matched_qa_id or "NO_QA_ID", channel, kb_version or "NO_KB_VERSION", interaction_scope, business_week)`;
 - select `max(ceil(group_size * normal_sample_rate), min(group_size, min_normal_samples_per_qa))` normal rows from each group;
 - use `record_id` SHA-256 ordering instead of a runtime random generator;
 - attach `selection_reason` as a semicolon-separated controlled list;
@@ -714,7 +719,7 @@ Add normal records across multiple QA IDs, channels, weeks, and knowledge-base v
 
 Sort selected sessions by earliest event time. Add whole sessions until the next session would exceed `max_turns_per_batch`; then begin a new batch. If one session alone exceeds the limit, put it in its own batch and mark `oversized_session=true`.
 
-Write `analysis_batch_001.csv` and `batch_manifest.csv`. Create `prompts/ops-analysis-v1.md` with the required input fields, allowed analysis tasks, prohibited actions, JSONL output contract, and a statement that a finding without evidence record IDs is invalid. The manifest must prove:
+Write `analysis_batch_001.csv` and `batch_manifest.csv`. Create `prompts/ops-analysis-v1.md` with the required input fields, allowed analysis tasks, prohibited actions, JSONL output contract, and a statement that a finding without evidence record IDs is invalid. The prompt must require every finding to label `interaction_scope` and state that `MULTI_TURN` findings are not eligible for direct single-turn UAT regression projection. The manifest must prove:
 
 - all mandatory records are covered;
 - selected record IDs are unique;
@@ -819,12 +824,14 @@ Use fields:
   "root_cause_hypothesis": "Intent confusion",
   "recommended_action": "Review QA-17 and QA-18",
   "proposed_test_inputs": ["I cannot sign in after resetting my password"],
+  "interaction_scope": "SINGLE_TURN",
+  "uat_translation_eligibility": "REVIEW_REQUIRED",
   "model_name": "company-strong-model",
   "prompt_version": "OPS-ANALYSIS-v1"
 }
 ```
 
-Tests must reject unknown schemas, missing record IDs, duplicate finding IDs, and record IDs absent from the batch manifest.
+Tests must reject unknown schemas, missing record IDs, duplicate finding IDs, record IDs absent from the batch manifest, and any `MULTI_TURN` finding marked as eligible for direct single-turn UAT regression. Tests must also prove that a valid single-turn candidate remains `PENDING_BUSINESS_REVIEW` after import.
 
 - [ ] **Step 2: Implement the importer and hard status override**
 
@@ -834,6 +841,8 @@ Even if a JSONL row contains `status`, ignore it and set:
 status = FindingStatus.PENDING_BUSINESS_REVIEW
 source = FindingSource.STRONG_MODEL
 ```
+
+Store `interaction_scope` and `uat_translation_eligibility` with the candidate. The importer must never create a frozen UAT case. A later human-reviewed export may create a v1.4 `03_Candidate_Cases` draft with `generator_run_id="OPS-<period>-<export_id>"`, `business_approval=PENDING`, `compliance_approval=PENDING` for sensitive cases, and evidence IDs in `review_note`.
 
 Write valid candidates to Parquet and rejected rows to `finding_import_errors.csv` with file name, line number, error code, and message. The import returns nonzero only when at least one row is rejected.
 
@@ -893,7 +902,7 @@ Create these sheets in exact order:
 ]
 ```
 
-Calculate KPI values from deterministic tables, never from generated prose. Include `finding_id`, evidence IDs, source, candidate severity, human status, reviewer, action owner, target date, and regression status.
+Calculate KPI values from deterministic tables, never from generated prose. Include `finding_id`, evidence IDs, source, candidate severity, interaction scope, UAT translation eligibility, human status, reviewer, action owner, target date, and regression status. The `07_Regression_Cases` sheet may contain only human-confirmed `SINGLE_TURN` draft candidates; it must retain the UAT v1.4 fields (`generator_run_id`, `test_family`, proposed route/QA ID, approvals, and evidence note) and explicitly state “not frozen / not executable”.
 
 - [ ] **Step 3: Implement the 8–12 page PDF**
 
@@ -1149,6 +1158,8 @@ Implementation is complete only when all of the following are evidenced:
 - Source count, exported count, batch count, and manifest counts reconcile exactly.
 - All exception records enter a model batch and normal sampling is reproducible.
 - Model findings cannot self-promote to confirmed status.
+- Multi-turn findings remain analytically traceable but cannot enter the single-turn UAT regression export without a separately approved multi-turn test design.
+- A human-confirmed single-turn finding can be traced to a v1.4 UAT Candidate_Cases draft with evidence, `generator_run_id`, and pending approvals; no pipeline step can freeze or execute it.
 - Approved reports attach only PDF and Excel; full exports remain in controlled storage.
 - One week of company anonymized sample data passes end-to-end shadow comparison.
 - The 100,000-row load test meets the recorded reference-runner limits.
