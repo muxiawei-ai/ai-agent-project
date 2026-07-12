@@ -1,8 +1,8 @@
 # 执行包版本
 
 - Package: `AI客服-UAT-Copilot内网执行包`
-- Version: `1.3.0`
-- Date: `2026-07-11`
+- Version: `1.4.0`
+- Date: `2026-07-12`
 - Design source: `AI客服-UAT测试方案-增强版.md`
 - Primary generator: `Claude Opus 4.8`
 - Independent reviewer / blind generator: `GPT-5.5`
@@ -16,6 +16,10 @@
 
 变更记录：
 
+- `1.4.0`（2026-07-12）：Dashboard 全部质量指标分母排除 `BLOCKED` 并保留单独异常计数；
+  `99_Selfcheck` 新增 `NOT_APPROVED/P0` 与 `VERSION_MISMATCH/BLOCKED` 的明确负向控制；
+  failure_type 枚举移除 `INCONSISTENT`，并明确 `acceptable_answer_set` 分隔符限制；
+  新增按实际条数扩展公式与表格的确定性容量准备器及回归测试，避免硬编码空白公式。
 - `1.3.0`（2026-07-11）：Dashboard 新增“执行 vs 判分行数对账”硬性前置（防公式未延展导致的静默漏算），
   自检表联动断言；方案文档明确单轮边界声明（多轮在契约外，需升级主版本）。
 - `1.2.0`（2026-07-11）：新增 `99_Selfcheck` 模板自检表（演示数据断言全部判分路径）；

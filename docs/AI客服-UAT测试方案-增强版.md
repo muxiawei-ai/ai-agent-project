@@ -268,7 +268,7 @@
 | `expected_route` | `QA/BUSINESS_FALLBACK/HUMAN_HANDOFF` |
 | `expected_qa_id` | 期望问答 ID，可为空 |
 | `expected_answer_text` | 从冻结知识库机械投影的原文 |
-| `acceptable_answer_set` | 业务明确允许多个文本时使用，默认只有一个 |
+| `acceptable_answer_set` | 业务明确允许多个文本时使用，默认只有一个；成员以 `|||` 分隔，成员文本内部禁止出现该分隔符 |
 | `risk_level` | 风险等级 |
 | `business_approval` | 必须为 `APPROVED` |
 | `compliance_approval` | 必须为 `APPROVED` 或 `NOT_REQUIRED` |
@@ -492,6 +492,8 @@
 - `VERSION_MISMATCH`：执行时加载的知识库版本与冻结用例绑定版本不一致（`pass_fail=BLOCKED`），属执行环境问题须人工排查。
 
 同一输入重复执行结果不一致（`INCONSISTENT`）在判分视图的 `consistency_flag` 列单独标记，且只在同一执行批次内比较。
+
+`BLOCKED` 属数据关联或执行环境异常，必须单独列示并修复后重跑；不得纳入通过率、失败率、P0率及一致性率的分母。
 
 ---
 
