@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贷款申请客户旅程看板</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;      /* 卡片/图表面 */
+    --page: #f9f9f7;           /* 页面底 */
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-in: #2a78d6;      /* 进入用户（蓝） */
+    --series-stuck: #008300;   /* 当前停留（绿） */
+    --series-in-wash: rgba(42,120,214,0.10);
+    --good-text: #006300;
+    --hover-wash: rgba(11,11,11,0.045);
+    --select-wash: rgba(42,120,214,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-in: #3987e5;
+      --series-stuck: #008300;
+      --series-in-wash: rgba(57,135,229,0.14);
+      --good-text: #0ca30c;
+      --hover-wash: rgba(255,255,255,0.06);
+      --select-wash: rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-in: #3987e5;
+    --series-stuck: #008300;
+    --series-in-wash: rgba(57,135,229,0.14);
+    --good-text: #0ca30c;
+    --hover-wash: rgba(255,255,255,0.06);
+    --select-wash: rgba(57,135,229,0.12);
+  }
+
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 24px 20px 48px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* ── 页头 ─────────────────────────── */
+  header h1 { font-size: 22px; font-weight: 650; letter-spacing: 0.2px; }
+  header .sub { margin-top: 6px; font-size: 13px; color: var(--text-secondary); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-muted);
+  }
+
+  /* ── 筛选行 ───────────────────────── */
+  .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+  .seg button {
+    appearance: none; border: none; background: none; cursor: pointer;
+    font: inherit; font-size: 13px; color: var(--text-secondary);
+    padding: 7px 14px; border-right: 1px solid var(--border);
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { background: var(--hover-wash); }
+  .seg button[aria-pressed="true"] { background: var(--select-wash); color: var(--text-primary); font-weight: 600; }
+  .filters select {
+    font: inherit; font-size: 13px; color: var(--text-primary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; cursor: pointer;
+  }
+  .filters .flabel { font-size: 12px; color: var(--text-muted); }
+
+  /* ── 卡片 ─────────────────────────── */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .card h2 { font-size: 14px; font-weight: 650; }
+  .card .cap { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ── KPI 行 ───────────────────────── */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .tile .tl { font-size: 12px; color: var(--text-secondary); }
+  .tile .tv { font-size: 30px; font-weight: 600; margin-top: 6px; line-height: 1.1; }
+  .tile .td { font-size: 12px; margin-top: 6px; color: var(--text-muted); }
+  .tile .td .up { color: var(--good-text); font-weight: 600; }
+  .tile .td .down { color: var(--text-secondary); font-weight: 600; }
+  .tile svg { display: block; margin-top: 8px; }
+
+  /* ── 主区布局 ─────────────────────── */
+  .main { display: grid; grid-template-columns: 7fr 5fr; gap: 12px; align-items: start; }
+  .below { margin-top: 12px; }
+  @media (max-width: 900px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .main { grid-template-columns: 1fr; }
+  }
+
+  /* ── 图例 ─────────────────────────── */
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); align-items: center; }
+  .legend .k { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend .ln { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
+
+  /* ── 漏斗（旅程步骤） ─────────────── */
+  .funnel { margin-top: 14px; display: flex; flex-direction: column; }
+  .stage {
+    appearance: none; border: none; background: none; font: inherit; text-align: left;
+    width: 100%; cursor: pointer; color: inherit;
+    display: grid; grid-template-columns: 108px 1fr 84px; gap: 12px; align-items: center;
+    padding: 9px 10px; border-radius: 8px; border: 1px solid transparent;
+  }
+  .stage:hover { background: var(--hover-wash); }
+  .stage[aria-pressed="true"] { background: var(--select-wash); border-color: var(--border); }
+  .stage .sn { font-size: 13px; color: var(--text-primary); }
+  .stage .sn .idx { color: var(--text-muted); font-size: 11px; margin-right: 5px; }
+  .stage .bars { display: flex; flex-direction: column; gap: 2px; }
+  .stage .brow { display: flex; align-items: center; height: 16px; }
+  .stage .bar { height: 16px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .stage .bar.in { background: var(--series-in); }
+  .stage .bar.stuck { background: var(--series-stuck); }
+  .stage .bv { font-size: 11.5px; color: var(--text-secondary); margin-left: 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stage .conv { font-size: 12px; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .stage .conv .cr { color: var(--text-secondary); font-weight: 600; }
+  .funnel-hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+
+  /* ── 下钻（按大区） ───────────────── */
+  .drill-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .drill-total { font-size: 26px; font-weight: 600; margin-top: 10px; }
+  .drill-total small { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
+  .regions { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .rrow {
+    display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center;
+    padding: 5px 6px; border-radius: 6px;
+  }
+  .rrow:hover { background: var(--hover-wash); }
+  .rrow .rn { font-size: 12.5px; color: var(--text-primary); }
+  .rrow .rb { display: flex; align-items: center; height: 16px; }
+  .rrow .bar { height: 16px; border-radius: 0 4px 4px 0; background: var(--series-in); min-width: 2px; }
+  .rrow .bv { font-size: 11.5px; color: var(--text-secondary); margin-left: 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ── 趋势图 ───────────────────────── */
+  .trend-svg { display: block; width: 100%; height: auto; margin-top: 12px; }
+  .trend-svg text { font-family: inherit; font-size: 11px; fill: var(--text-muted); }
+  .trend-svg .gl { stroke: var(--grid); stroke-width: 1; }
+  .trend-svg .bl { stroke: var(--baseline); stroke-width: 1; }
+  .trend-svg .ser { stroke: var(--series-in); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-svg .wash { fill: var(--series-in-wash); }
+  .trend-svg .xh { stroke: var(--baseline); stroke-width: 1; }
+  .trend-svg .dot { fill: var(--series-in); stroke: var(--surface-1); stroke-width: 2; }
+
+  /* ── 提示框 ───────────────────────── */
+  .tip {
+    position: fixed; z-index: 30; pointer-events: none; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+    max-width: 260px;
+  }
+  .tip .tt { color: var(--text-muted); margin-bottom: 4px; }
+  .tip .trow { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  .tip .tk { width: 12px; height: 2px; border-radius: 1px; flex: none; }
+  .tip .tval { font-weight: 650; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .tip .tlab { color: var(--text-secondary); }
+
+  /* ── 表格视图 ─────────────────────── */
+  .tbl-toggle {
+    appearance: none; font: inherit; font-size: 12px; cursor: pointer;
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-secondary); padding: 5px 12px;
+  }
+  .tbl-toggle:hover { background: var(--hover-wash); }
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th { color: var(--text-muted); font-weight: 500; }
+  th:first-child, td:first-child { text-align: left; }
+  td:first-child { color: var(--text-primary); }
+  td { color: var(--text-secondary); }
+
+  footer { margin-top: 22px; font-size: 12px; color: var(--text-muted); line-height: 1.8; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="wrap">
+
+    <header>
+      <h1>贷款申请客户旅程看板</h1>
+      <div class="sub">
+        <span>申请发送 → 开始操作 → 提交申请 → 还款卡验证 → 签署电子合同 → 提交放款 → 合同激活</span>
+        <span class="badge">演示数据 · 每日 T+1 08:00 刷新</span>
+        <span id="refresh-at"></span>
+      </div>
+    </header>
+
+    <div class="filters" role="group" aria-label="筛选">
+      <span class="flabel">日期范围</span>
+      <div class="seg" id="range-seg">
+        <button data-range="1" aria-pressed="false">今日</button>
+        <button data-range="7" aria-pressed="true">近7天</button>
+        <button data-range="30" aria-pressed="false">近30天</button>
+      </div>
+      <span class="flabel">大区</span>
+      <select id="region-sel" aria-label="大区筛选"></select>
+    </div>
+
+    <div class="kpis">
+      <div class="card tile">
+        <div class="tl">期间进入用户（申请发送）</div>
+        <div class="tv" id="kpi-in">–</div>
+        <div class="td" id="kpi-in-delta"></div>
+        <svg id="kpi-spark" width="120" height="28" viewBox="0 0 120 28" aria-hidden="true"></svg>
+      </div>
+      <div class="card tile">
+        <div class="tl">期间合同激活（完成放款）</div>
+        <div class="tv" id="kpi-done">–</div>
+        <div class="td" id="kpi-done-delta"></div>
+      </div>
+      <div class="card tile">
+        <div class="tl">端到端转化率</div>
+        <div class="tv" id="kpi-conv">–</div>
+        <div class="td">合同激活 ÷ 申请发送</div>
+      </div>
+      <div class="card tile">
+        <div class="tl">当前在途停留用户</div>
+        <div class="tv" id="kpi-stuck">–</div>
+        <div class="td">快照口径 · 不随日期范围变化</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="card">
+        <div class="drill-head">
+          <div>
+            <h2>客户旅程漏斗</h2>
+            <div class="cap" id="funnel-cap"></div>
+          </div>
+          <div class="legend">
+            <span class="k"><span class="sw" style="background:var(--series-in)"></span>期间进入</span>
+            <span class="k"><span class="sw" style="background:var(--series-stuck)"></span>当前停留</span>
+          </div>
+        </div>
+        <div class="funnel" id="funnel"></div>
+        <div class="funnel-hint">点击任一步骤，右侧查看该步骤当前停留用户的大区分布。</div>
+      </div>
+
+      <div class="card">
+        <div class="drill-head">
+          <div>
+            <h2 id="drill-title">当前停留 · 按大区</h2>
+            <div class="cap" id="drill-cap"></div>
+          </div>
+        </div>
+        <div class="drill-total" id="drill-total"></div>
+        <div class="regions" id="drill-regions"></div>
+      </div>
+    </div>
+
+    <div class="card below">
+      <div class="drill-head">
+        <div>
+          <h2>每日进入用户趋势</h2>
+          <div class="cap" id="trend-cap"></div>
+        </div>
+      </div>
+      <svg class="trend-svg" id="trend" viewBox="0 0 920 240" role="img" aria-label="每日进入用户趋势折线图"></svg>
+    </div>
+
+    <div class="card below">
+      <div class="drill-head">
+        <h2>旅程明细（表格视图）</h2>
+        <button class="tbl-toggle" id="tbl-toggle" aria-expanded="false">展开表格</button>
+      </div>
+      <div class="tbl-wrap" id="tbl-wrap" hidden></div>
+    </div>
+
+    <footer>
+      <div><strong>口径说明</strong>：「期间进入」= 所选日期范围内首次到达该步骤的用户数；「当前停留」= 截至最近刷新时点仍停留在该步骤、未流转到下一步的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。</div>
+      <div>本页为产品看板原型，数据由前端按日期种子模拟生成（每天刷新出新数值）；接入生产时替换 <code>loadData()</code> 为数仓/API 查询即可，页面结构与交互不变。</div>
+    </footer>
+
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 常量 ──────────────────────────────────────────────
+  var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
+  var REGIONS = ['华东', '华南', '华北', '华中', '西南', '西北'];
+  var REGION_W = [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];      // 各大区体量权重
+  var CONV = [0.74, 0.62, 0.55, 0.78, 0.90, 0.95];        // 相邻步骤基准转化率（还款卡验证为主要摩擦点）
+  var BASE_DAILY = 620;                                    // 全国日均申请发送基数
+
+  // ── 模拟数据（按日期种子，每天刷新出新数值；生产环境替换为 API） ──
+  function hashSeed(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function dstr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d; }
+
+  // 某日某大区各步骤进入人数
+  function dayRegionEntered(dateStr, ri) {
+    var r = rng(hashSeed(dateStr + '|' + REGIONS[ri]));
+    var dow = new Date(dateStr + 'T00:00:00').getDay();
+    var wk = (dow === 0 || dow === 6) ? 0.62 : 1.0;
+    var sent = BASE_DAILY * (REGION_W[ri] / 5.5) * wk * (0.82 + r() * 0.36);
+    var out = [Math.round(sent)], cur = sent;
+    for (var s = 0; s < CONV.length; s++) {
+      cur = cur * Math.min(0.99, CONV[s] * (0.92 + r() * 0.16));
+      out.push(Math.round(cur));
+    }
+    return out;
+  }
+  // 当前停留快照：近3日进入未流转的滞留部分（终点步骤不计停留）
+  function stuckSnapshot(ri) {
+    var today = dstr(daysAgo(0));
+    var r = rng(hashSeed('stuck|' + today + '|' + REGIONS[ri]));
+    var acc = STAGES.map(function () { return 0; });
+    for (var d = 1; d <= 3; d++) {
+      var e = dayRegionEntered(dstr(daysAgo(d)), ri);
+      for (var s = 0; s < STAGES.length - 1; s++) {
+        var dropped = e[s] - e[s + 1];
+        acc[s] += dropped * (0.5 + r() * 0.35);   // 未流转用户中仍视为「停留在途」的比例
+      }
+    }
+    return acc.map(Math.round);
+  }
+
+  // 汇总：日期范围 × 大区 → { entered[7], series:[{date,val}] }
+  function loadData(rangeDays, regionIdx) {
+    var entered = STAGES.map(function () { return 0; });
+    var series = [];
+    var trendDays = Math.max(rangeDays, 14);
+    for (var d = trendDays; d >= 1; d--) {
+      var ds = dstr(daysAgo(d));
+      var daySent = 0;
+      for (var ri = 0; ri < REGIONS.length; ri++) {
+        if (regionIdx !== -1 && ri !== regionIdx) continue;
+        var e = dayRegionEntered(ds, ri);
+        daySent += e[0];
+        if (d <= rangeDays) for (var s = 0; s < STAGES.length; s++) entered[s] += e[s];
+      }
+      series.push({ date: ds, val: daySent, inRange: d <= rangeDays });
+    }
+    return { entered: entered, series: series };
+  }
+  function stuckByRegion() { return REGIONS.map(function (_, ri) { return stuckSnapshot(ri); }); }
+
+  // ── 状态 ──────────────────────────────────────────────
+  var state = { range: 7, region: -1, stage: 3 };   // 默认选中「还款卡验证」
+  var STUCK = stuckByRegion();                       // [region][stage]
+
+  function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
+  function pct(n) { return (n * 100).toFixed(1) + '%'; }
+  function rangeName() { return state.range === 1 ? '今日' : '近' + state.range + '天'; }
+  function regionName() { return state.region === -1 ? '全部大区' : REGIONS[state.region]; }
+  function stuckOf(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += STUCK[ri][stage];
+    }
+    return t;
+  }
+
+  // ── 提示框 ────────────────────────────────────────────
+  var tip = document.getElementById('tip');
+  function tipShow(x, y, title, rows) {
+    tip.textContent = '';
+    var t = document.createElement('div'); t.className = 'tt'; t.textContent = title; tip.appendChild(t);
+    rows.forEach(function (row) {
+      var el = document.createElement('div'); el.className = 'trow';
+      var k = document.createElement('span'); k.className = 'tk'; k.style.background = row.color; el.appendChild(k);
+      var v = document.createElement('span'); v.className = 'tval'; v.textContent = row.value; el.appendChild(v);
+      var l = document.createElement('span'); l.className = 'tlab'; l.textContent = row.label; el.appendChild(l);
+      tip.appendChild(el);
+    });
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var px = Math.min(x + 14, window.innerWidth - w - 10);
+    var py = y - h - 12 < 8 ? y + 16 : y - h - 12;
+    tip.style.left = px + 'px'; tip.style.top = py + 'px';
+  }
+  function tipHide() { tip.style.display = 'none'; }
+  function seriesColor(name) {
+    return getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(name).trim();
+  }
+
+  // ── KPI ───────────────────────────────────────────────
+  function renderKpis(data, prev) {
+    var sent = data.entered[0], done = data.entered[6];
+    document.getElementById('kpi-in').textContent = fmt(sent);
+    document.getElementById('kpi-done').textContent = fmt(done);
+    document.getElementById('kpi-conv').textContent = sent ? pct(done / sent) : '–';
+    var totalStuck = 0;
+    for (var s = 0; s < STAGES.length - 1; s++) totalStuck += stuckOf(s);
+    document.getElementById('kpi-stuck').textContent = fmt(totalStuck);
+
+    [['kpi-in-delta', sent, prev.entered[0]], ['kpi-done-delta', done, prev.entered[6]]].forEach(function (it) {
+      var el = document.getElementById(it[0]); el.textContent = '';
+      if (!it[2]) return;
+      var d = (it[1] - it[2]) / it[2];
+      var sp = document.createElement('span');
+      sp.className = d >= 0 ? 'up' : 'down';
+      sp.textContent = (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
+      el.appendChild(sp);
+      el.appendChild(document.createTextNode(' vs 上一' + (state.range === 1 ? '日' : '周期')));
+    });
+
+    // 迷你趋势：近12天进入
+    var svg = document.getElementById('kpi-spark'); svg.textContent = '';
+    var pts = data.series.slice(-12).map(function (p) { return p.val; });
+    var mx = Math.max.apply(null, pts) || 1, mn = Math.min.apply(null, pts);
+    var path = pts.map(function (v, i) {
+      var x = 4 + i * (112 / 11), y = 24 - (mx === mn ? 0.5 : (v - mn) / (mx - mn)) * 20;
+      return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+    var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', path); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'var(--baseline)'); p.setAttribute('stroke-width', '1.5');
+    svg.appendChild(p);
+    var last = pts[pts.length - 1];
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', String(4 + 11 * (112 / 11))); c.setAttribute('r', '3');
+    c.setAttribute('cy', String(24 - (mx === mn ? 0.5 : (last - mn) / (mx - mn)) * 20));
+    c.setAttribute('fill', 'var(--series-in)');
+    svg.appendChild(c);
+  }
+
+  // ── 漏斗 ──────────────────────────────────────────────
+  function renderFunnel(data) {
+    document.getElementById('funnel-cap').textContent = rangeName() + ' · ' + regionName();
+    var root = document.getElementById('funnel'); root.textContent = '';
+    var max = data.entered[0] || 1;
+
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var stuck = isLast ? null : stuckOf(s);
+      var btn = document.createElement('button');
+      btn.className = 'stage';
+      btn.setAttribute('aria-pressed', String(s === state.stage));
+      if (isLast) { btn.disabled = false; }
+
+      var sn = document.createElement('span'); sn.className = 'sn';
+      var idx = document.createElement('span'); idx.className = 'idx'; idx.textContent = String(s + 1);
+      sn.appendChild(idx); sn.appendChild(document.createTextNode(name));
+      btn.appendChild(sn);
+
+      var bars = document.createElement('span'); bars.className = 'bars';
+      function brow(cls, val, maxVal) {
+        var row = document.createElement('span'); row.className = 'brow';
+        var bar = document.createElement('span'); bar.className = 'bar ' + cls;
+        bar.style.width = Math.max(0.5, val / maxVal * 100 * 0.72) + '%';
+        row.appendChild(bar);
+        var bv = document.createElement('span'); bv.className = 'bv'; bv.textContent = fmt(val);
+        row.appendChild(bv);
+        return row;
+      }
+      bars.appendChild(brow('in', data.entered[s], max));
+      if (!isLast) bars.appendChild(brow('stuck', stuck, max));
+      else {
+        var doneRow = document.createElement('span'); doneRow.className = 'brow';
+        var bv = document.createElement('span'); bv.className = 'bv'; bv.textContent = '旅程终点 · 无停留';
+        bv.style.marginLeft = '0';
+        doneRow.appendChild(bv);
+        bars.appendChild(doneRow);
+      }
+      btn.appendChild(bars);
+
+      var conv = document.createElement('span'); conv.className = 'conv';
+      if (s > 0) {
+        var cr = document.createElement('span'); cr.className = 'cr';
+        cr.textContent = data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–';
+        conv.appendChild(cr);
+        conv.appendChild(document.createElement('br'));
+        conv.appendChild(document.createTextNode('上步转化'));
+      }
+      btn.appendChild(conv);
+
+      btn.addEventListener('click', function () {
+        if (isLast) return;
+        state.stage = s;
+        renderAll(false);
+      });
+      btn.addEventListener('pointermove', function (ev) {
+        var rows = [{ color: seriesColor('--series-in'), value: fmt(data.entered[s]), label: rangeName() + '进入' }];
+        if (!isLast) rows.push({ color: seriesColor('--series-stuck'), value: fmt(stuck), label: '当前停留（快照）' });
+        tipShow(ev.clientX, ev.clientY, (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
+      });
+      btn.addEventListener('pointerleave', tipHide);
+      root.appendChild(btn);
+    });
+  }
+
+  // ── 下钻：按大区 ──────────────────────────────────────
+  function renderDrill() {
+    var s = state.stage;
+    document.getElementById('drill-title').textContent = '当前停留 · 按大区';
+    document.getElementById('drill-cap').textContent = '步骤 ' + (s + 1) + ' · ' + STAGES[s] + ' · 截至最近刷新';
+    var rows = REGIONS.map(function (r, ri) { return { name: r, val: STUCK[ri][s], ri: ri }; })
+      .filter(function (r) { return state.region === -1 || r.ri === state.region; })
+      .sort(function (a, b) { return b.val - a.val; });
+    var total = rows.reduce(function (t, r) { return t + r.val; }, 0);
+    var totalEl = document.getElementById('drill-total'); totalEl.textContent = '';
+    totalEl.appendChild(document.createTextNode(fmt(total)));
+    var sm = document.createElement('small'); sm.textContent = '名用户停留在「' + STAGES[s] + '」';
+    totalEl.appendChild(sm);
+
+    var root = document.getElementById('drill-regions'); root.textContent = '';
+    var max = rows.length ? rows[0].val : 1;
+    rows.forEach(function (r) {
+      var row = document.createElement('div'); row.className = 'rrow'; row.tabIndex = 0;
+      var rn = document.createElement('span'); rn.className = 'rn'; rn.textContent = r.name; row.appendChild(rn);
+      var rb = document.createElement('span'); rb.className = 'rb';
+      var bar = document.createElement('span'); bar.className = 'bar';
+      bar.style.width = Math.max(1, r.val / (max || 1) * 100 * 0.8) + '%';
+      rb.appendChild(bar);
+      var bv = document.createElement('span'); bv.className = 'bv';
+      bv.textContent = fmt(r.val) + (total ? '（' + pct(r.val / total) + '）' : '');
+      rb.appendChild(bv);
+      row.appendChild(rb);
+      function show(ev) {
+        var rect = row.getBoundingClientRect();
+        var x = ev && ev.clientX ? ev.clientX : rect.left + rect.width / 2;
+        var y = ev && ev.clientY ? ev.clientY : rect.top;
+        tipShow(x, y, r.name + ' · ' + STAGES[s], [
+          { color: seriesColor('--series-in'), value: fmt(r.val), label: '当前停留用户' },
+          { color: 'transparent', value: total ? pct(r.val / total) : '–', label: '占该步骤停留' }
+        ]);
+      }
+      row.addEventListener('pointermove', show);
+      row.addEventListener('focus', show);
+      row.addEventListener('pointerleave', tipHide);
+      row.addEventListener('blur', tipHide);
+      root.appendChild(row);
+    });
+  }
+
+  // ── 趋势图 ────────────────────────────────────────────
+  function renderTrend(data) {
+    document.getElementById('trend-cap').textContent = '近14天 · 申请发送步骤进入人数 · ' + regionName();
+    var svg = document.getElementById('trend'); svg.textContent = '';
+    var W = 920, H = 240, L = 52, R = 16, T = 16, B = 34;
+    var pts = data.series.slice(-14);
+    var maxV = Math.max.apply(null, pts.map(function (p) { return p.val; })) || 1;
+    var step = Math.pow(10, Math.floor(Math.log10(maxV)));
+    var top = Math.ceil(maxV / (step / 2)) * (step / 2);
+    function X(i) { return L + i * (W - L - R) / (pts.length - 1); }
+    function Y(v) { return T + (1 - v / top) * (H - T - B); }
+    function el(n, attrs) {
+      var e = document.createElementNS('http://www.w3.org/2000/svg', n);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+    // 网格 + 纵轴刻度
+    for (var g = 0; g <= 4; g++) {
+      var v = top * g / 4, y = Y(v);
+      svg.appendChild(el(g === 0 ? 'line' : 'line', { x1: L, x2: W - R, y1: y, y2: y, 'class': g === 0 ? 'bl' : 'gl' }));
+      var t = el('text', { x: L - 8, y: y + 4, 'text-anchor': 'end' });
+      t.textContent = Math.round(v).toLocaleString('zh-CN');
+      svg.appendChild(t);
+    }
+    // 横轴日期（隔一天标一个）
+    pts.forEach(function (p, i) {
+      if (i % 2 !== (pts.length - 1) % 2) return;
+      var t = el('text', { x: X(i), y: H - B + 20, 'text-anchor': 'middle' });
+      t.textContent = p.date.slice(5).replace('-', '/');
+      svg.appendChild(t);
+    });
+    // 面积淡washes + 折线
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.val).toFixed(1); }).join(' ');
+    svg.appendChild(el('path', { d: line + ' L' + X(pts.length - 1).toFixed(1) + ' ' + Y(0) + ' L' + L + ' ' + Y(0) + ' Z', 'class': 'wash' }));
+    svg.appendChild(el('path', { d: line, 'class': 'ser' }));
+    // 末点标记 + 数值
+    var lastI = pts.length - 1;
+    svg.appendChild(el('circle', { cx: X(lastI), cy: Y(pts[lastI].val), r: 4, 'class': 'dot' }));
+    var endT = el('text', { x: X(lastI) - 6, y: Y(pts[lastI].val) - 10, 'text-anchor': 'end', style: 'fill: var(--text-secondary); font-weight: 600;' });
+    endT.textContent = fmt(pts[lastI].val);
+    svg.appendChild(endT);
+    // 十字线 + 悬停
+    var xh = el('line', { y1: T, y2: H - B, 'class': 'xh', visibility: 'hidden' });
+    var hd = el('circle', { r: 4, 'class': 'dot', visibility: 'hidden' });
+    svg.appendChild(xh); svg.appendChild(hd);
+    var hit = el('rect', { x: L, y: T, width: W - L - R, height: H - T - B, fill: 'transparent' });
+    hit.addEventListener('pointermove', function (ev) {
+      var box = svg.getBoundingClientRect();
+      var mx = (ev.clientX - box.left) / box.width * W;
+      var i = Math.max(0, Math.min(pts.length - 1, Math.round((mx - L) / ((W - L - R) / (pts.length - 1)))));
+      xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('visibility', 'visible');
+      hd.setAttribute('cx', X(i)); hd.setAttribute('cy', Y(pts[i].val)); hd.setAttribute('visibility', 'visible');
+      tipShow(ev.clientX, ev.clientY, pts[i].date + ' · ' + regionName(),
+        [{ color: seriesColor('--series-in'), value: fmt(pts[i].val), label: '进入用户（申请发送）' }]);
+    });
+    hit.addEventListener('pointerleave', function () {
+      xh.setAttribute('visibility', 'hidden'); hd.setAttribute('visibility', 'hidden'); tipHide();
+    });
+    svg.appendChild(hit);
+  }
+
+  // ── 表格视图 ──────────────────────────────────────────
+  function renderTable(data) {
+    var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
+    var tb = document.createElement('table');
+    var thead = document.createElement('thead'); var hr = document.createElement('tr');
+    ['旅程步骤', rangeName() + '进入', '上步转化', '当前停留（快照）'].concat(
+      REGIONS.map(function (r) { return '停留·' + r; })
+    ).forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+    thead.appendChild(hr); tb.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var tr = document.createElement('tr');
+      var cells = [
+        (s + 1) + '. ' + name,
+        fmt(data.entered[s]),
+        s === 0 ? '–' : (data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–'),
+        isLast ? '–' : fmt(stuckOf(s))
+      ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }));
+      cells.forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);
+    wrap.appendChild(tb);
+  }
+
+  // ── 汇总渲染 ──────────────────────────────────────────
+  function renderAll(reload) {
+    var data = loadData(state.range, state.region);
+    if (reload !== false) {
+      var prevEntered = STAGES.map(function () { return 0; });
+      for (var d = state.range * 2; d > state.range; d--) {
+        var ds = dstr(daysAgo(d));
+        for (var ri = 0; ri < REGIONS.length; ri++) {
+          if (state.region !== -1 && ri !== state.region) continue;
+          var e = dayRegionEntered(ds, ri);
+          for (var s = 0; s < STAGES.length; s++) prevEntered[s] += e[s];
+        }
+      }
+      renderKpis(data, { entered: prevEntered });
+      renderTrend(data);
+      renderTable(data);
+    }
+    renderFunnel(data);
+    renderDrill();
+  }
+
+  // ── 控件 ──────────────────────────────────────────────
+  document.querySelectorAll('#range-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.range = Number(b.dataset.range);
+      document.querySelectorAll('#range-seg button').forEach(function (x) {
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+      renderAll(true);
+    });
+  });
+  var sel = document.getElementById('region-sel');
+  ['全部大区'].concat(REGIONS).forEach(function (r, i) {
+    var o = document.createElement('option'); o.value = String(i - 1); o.textContent = r; sel.appendChild(o);
+  });
+  sel.addEventListener('change', function () { state.region = Number(sel.value); renderAll(true); });
+  document.getElementById('tbl-toggle').addEventListener('click', function () {
+    var w = document.getElementById('tbl-wrap');
+    var open = w.hidden;
+    w.hidden = !open;
+    this.setAttribute('aria-expanded', String(open));
+    this.textContent = open ? '收起表格' : '展开表格';
+  });
+
+  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + '（T+1）';
+  renderAll(true);
+})();
+</script>
+</body>
+</html>
