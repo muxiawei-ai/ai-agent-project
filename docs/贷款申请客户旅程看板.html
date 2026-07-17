@@ -97,6 +97,7 @@
   .map-svg .st:hover .station-c { stroke-width: 3; }
   .map-svg .st:focus { outline: none; }
   .map-svg .st:focus .station-c { stroke-width: 3; }
+  .map-svg .st:focus-visible .station-c { stroke-width: 4; }
   .map-svg .abox { fill: #fff; stroke: var(--hairline); }
   .map-svg .abox-t1 { font-size: 10px; letter-spacing: 0.14em; fill: var(--ink-2); }
   .map-svg .abox-t2 { font-family: var(--serif); font-size: 14px; font-weight: 700; fill: var(--ink); }
@@ -218,7 +219,7 @@
     <div class="filters" role="group" aria-label="筛选">
       <span class="flabel">日期范围 RANGE</span>
       <div class="seg" id="range-seg">
-        <button data-range="1" aria-pressed="false">今日</button>
+        <button data-range="1" aria-pressed="false">昨日 (T+1)</button>
         <button data-range="7" aria-pressed="true">近7天</button>
         <button data-range="30" aria-pressed="false">近30天</button>
       </div>
@@ -232,8 +233,8 @@
           <h2>客户旅程全景图</h2>
           <span class="eyebrow" id="map-cap"></span>
         </div>
-        <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="img" aria-label="客户旅程地图：七个站点与当前停留人数"></svg>
-        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数；<span style="color:var(--accent)">红色站点</span>为当前最大摩擦点；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
+        <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="group" aria-label="客户旅程地图：七个站点与当前停留人数，站点可选中下钻"></svg>
+        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数（微量值设 4px 可读下限）；<span style="color:var(--accent)">红色站点</span>为停留率最高的摩擦点（当前停留 ÷ 近3日到站）；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
       </div>
 
       <div class="panel">
@@ -303,7 +304,7 @@
   var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
   var REGIONS = ['华东', '华南', '华北', '华中', '西南', '西北'];
   var REGION_W = [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];      // 各大区体量权重
-  var CONV = [0.74, 0.62, 0.55, 0.78, 0.90, 0.95];        // 相邻站点基准转化率（还款卡验证为主要摩擦点）
+  var CONV = [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];        // 相邻站点基准转化率（还款卡验证环节通过率最低）
   var BASE_DAILY = 620;                                    // 全国日均申请发送基数
 
   // ── 模拟数据（按日期种子，每天刷新出新数值；生产环境替换为 API） ──
@@ -373,6 +374,15 @@
 
   // ── 状态 ──────────────────────────────────────────────
   var STUCK = REGIONS.map(function (_, ri) { return stuckSnapshot(ri); });   // [region][stage]
+  // 近3日到站人数（停留率的分母：停留快照正是从近3日进入中沉淀出来的）
+  var ENT3 = REGIONS.map(function (_, ri) {
+    var acc = STAGES.map(function () { return 0; });
+    for (var d = 1; d <= 3; d++) {
+      var e = dayRegionEntered(dstr(daysAgo(d)), ri);
+      for (var s = 0; s < STAGES.length; s++) acc[s] += e[s];
+    }
+    return acc;
+  });
 
   // AI 助手协助快照：各站停留客户中正被 AI 主动跟进/协助的人数
   var AI_COV = [0.32, 0.55, 0.48, 0.62, 0.5, 0.38];   // 各站基准覆盖率（摩擦越大投入越高）
@@ -383,17 +393,19 @@
       return Math.round(v * Math.min(0.9, AI_COV[s] * (0.85 + r() * 0.3)));
     });
   });
-  // 默认下钻站点 = 当前停留最多的站（最大摩擦点）
+  // 默认下钻站点 = 当前停留率最高的站（最大摩擦点：停留 ÷ 近3日到站）
   var initStage = 0, initMax = -1;
   for (var si = 0; si < STAGES.length - 1; si++) {
     var st = STUCK.reduce(function (t, row) { return t + row[si]; }, 0);
-    if (st > initMax) { initMax = st; initStage = si; }
+    var e3 = ENT3.reduce(function (t, row) { return t + row[si]; }, 0);
+    var rate = e3 ? st / e3 : 0;
+    if (rate > initMax) { initMax = rate; initStage = si; }
   }
   var state = { range: 7, region: -1, stage: initStage };
 
   function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
   function pct(n) { return (n * 100).toFixed(1) + '%'; }
-  function rangeName() { return state.range === 1 ? '今日' : '近' + state.range + '天'; }
+  function rangeName() { return state.range === 1 ? '昨日' : '近' + state.range + '天'; }
   function regionName() { return state.region === -1 ? '全部大区' : REGIONS[state.region]; }
   function stuckOf(stage) {
     var t = 0;
@@ -410,6 +422,24 @@
       t += AIH[ri][stage];
     }
     return t;
+  }
+  function ent3Of(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += ENT3[ri][stage];
+    }
+    return t;
+  }
+  // 最大摩擦点 = 停留率（当前停留 ÷ 近3日到站）最高的站，随大区筛选变化
+  function frictionOf() {
+    var best = 0, bestRate = -1;
+    for (var s = 0; s < STAGES.length - 1; s++) {
+      var e3 = ent3Of(s);
+      var rate = e3 ? stuckOf(s) / e3 : 0;
+      if (rate > bestRate) { bestRate = rate; best = s; }
+    }
+    return { stage: best, rate: bestRate };
   }
   function cssv(name) { return getComputedStyle(document.querySelector('.atlas')).getPropertyValue(name).trim(); }
 
@@ -479,16 +509,6 @@
     }
     return segs;
   }
-  function segPath(s) {
-    return 'M' + s.p1.x + ' ' + s.p1.y +
-      ' C' + s.c1.x.toFixed(1) + ' ' + s.c1.y.toFixed(1) + ', ' + s.c2.x.toFixed(1) + ' ' + s.c2.y.toFixed(1) +
-      ', ' + s.p2.x + ' ' + s.p2.y;
-  }
-  function bezMid(s) {   // t=0.5
-    function m(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
-    var ab = m(s.p1, s.c1), bc = m(s.c1, s.c2), cd = m(s.c2, s.p2);
-    return m(m(ab, bc), m(bc, cd));
-  }
   // 圆弧路径：自 12 点方向顺时针占 frac 圈
   function arcPath(cx, cy, R, frac) {
     var a0 = -Math.PI / 2, a1 = a0 + Math.PI * 2 * frac;
@@ -527,14 +547,20 @@
       return seen - 1;
     }
 
-    // 通道（宽度 ∝ 进入下一站人数，逐站收窄）
-    spans.forEach(function (s, i) {
-      var seg = Math.min(segOf(i), STAGES.length - 2);
-      var w = 4 + 22 * (data.entered[seg + 1] / maxIn);
-      svg.appendChild(el('path', { d: segPath(s), 'stroke-width': w.toFixed(1) }, 'ribbon'));
-    });
-    // 虚线路线（地图感）
-    spans.forEach(function (s) { svg.appendChild(el('path', { d: segPath(s) }, 'route')); });
+    function ctrl(sp) {
+      return ' C' + sp.c1.x.toFixed(1) + ' ' + sp.c1.y.toFixed(1) + ', ' +
+        sp.c2.x.toFixed(1) + ' ' + sp.c2.y.toFixed(1) + ', ' + sp.p2.x + ' ' + sp.p2.y;
+    }
+    // 通道：每个站间区段合并为一条 path（半透明分段端帽会在转弯处叠出圆斑）
+    for (var k = 0; k < SP.length - 1; k++) {
+      var dPath = 'M' + SP[k].x + ' ' + SP[k].y + ctrl(spans[2 * k]) + ctrl(spans[2 * k + 1]);
+      var w = 4 + 22 * (data.entered[k + 1] / maxIn);
+      svg.appendChild(el('path', { d: dPath, 'stroke-width': w.toFixed(1) }, 'ribbon'));
+    }
+    // 虚线路线（整条一笔）
+    var rd = 'M' + ROUTE[0].x + ' ' + ROUTE[0].y;
+    spans.forEach(function (sp) { rd += ctrl(sp); });
+    svg.appendChild(el('path', { d: rd }, 'route'));
 
     // 转弯路标点处的转化率标签（恰为两站之间）
     ROUTE.forEach(function (p, i) {
@@ -550,24 +576,27 @@
     svg.appendChild(txt(SP[0].x - 118, SP[0].y + 5, '入口 · ENTRY', 'tag'));
     svg.appendChild(txt(SP[6].x, SP[6].y - 34, '终点 · ACTIVATED', 'tag', 'middle'));
 
-    // 最大摩擦点（停留最多的站）
-    var maxStuckStage = 0, maxStuckVal = -1;
-    for (var s2 = 0; s2 < STAGES.length - 1; s2++) {
-      var v = stuckOf(s2);
-      if (v > maxStuckVal) { maxStuckVal = v; maxStuckStage = s2; }
-    }
+    // 最大摩擦点（停留率最高的站）
+    var friction = frictionOf();
 
     // 注释框 + 引线 + 站点
     STAGES.forEach(function (name, s) {
       var isLast = s === STAGES.length - 1;
       var p = SP[s], b = BOX[s];
       var stuck = isLast ? null : stuckOf(s);
-      var isFriction = !isLast && s === maxStuckStage;
+      var isFriction = !isLast && s === friction.stage;
       var selected = s === state.stage;
       var accent = cssv('--accent'), blue = cssv('--blue');
 
       var g = el('g', { tabindex: isLast ? -1 : 0, role: isLast ? null : 'button' }, 'st');
       if (isLast) g.removeAttribute('role');
+      if (!isLast) {
+        g.setAttribute('aria-pressed', String(selected));
+        g.setAttribute('aria-label', '0' + (s + 1) + ' ' + name + '：' + rangeName() + '进入 ' +
+          fmt(data.entered[s]) + ' 人，当前停留 ' + fmt(stuck) + ' 人');
+      } else {
+        g.setAttribute('aria-label', '0' + (s + 1) + ' ' + name + '：' + rangeName() + '激活 ' + fmt(data.entered[6]) + ' 人');
+      }
 
       // 引线：框边中点 → 站点
       var bx = b.x + BW / 2, by = b.y + (b.y < p.y ? BH : 0);
@@ -583,8 +612,8 @@
       g.appendChild(txt(b.x + 34, b.y + 18, name, 'abox-t2'));
       g.appendChild(txt(b.x + 10, b.y + 37, (isLast ? '期间激活 ' : '期间进入 ') + fmt(data.entered[s]), 'abox-t3'));
 
-      // 站点圆：面积 ∝ 停留（外加透明扩大命中区）
-      var r = isLast ? 15 : Math.min(32, 8 + Math.sqrt(stuck || 0) * 1.35);
+      // 站点圆：面积 ∝ 停留，仅设 4px 可读下限（外加透明扩大命中区）
+      var r = isLast ? 15 : Math.max(4, Math.sqrt(stuck || 0) * 1.6);
       g.appendChild(el('circle', { cx: p.x, cy: p.y, r: (r + 14).toFixed(1), fill: 'transparent' }));
       var c = el('circle', { cx: p.x, cy: p.y, r: r.toFixed(1) }, 'station-c');
       if (isFriction) c.style.stroke = accent;
@@ -625,6 +654,8 @@
         state.stage = s;
         var d2 = loadData(state.range, state.region);
         renderMap(d2); renderDrill(); renderIndex(d2);
+        var fg = document.querySelector('#map .st[aria-pressed="true"]');
+        if (fg) fg.focus();   // 重建 SVG 后把焦点还给选中站，键盘操作不迷路
       }
       if (!isLast) {
         g.addEventListener('click', pick);
@@ -632,16 +663,23 @@
           if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); }
         });
       }
-      g.addEventListener('pointermove', function (ev) {
+      function stationTip(ev) {
         var rows = [{ color: blue, value: fmt(data.entered[s]), label: rangeName() + (isLast ? '激活' : '进入') }];
         if (!isLast) {
           rows.push({ color: accent, value: fmt(stuck), label: '当前停留（快照）' });
+          var e3 = ent3Of(s);
+          if (e3) rows.push({ color: 'transparent', value: pct(stuck / e3), label: '停留率 · 停留÷近3日到站' });
           var aiN = aiOf(s);
           rows.push({ color: cssv('--ai'), value: fmt(aiN), label: 'AI 协助中' + (stuck ? ' · 占停留 ' + pct(aiN / stuck) : '') });
         }
         if (s > 0) rows.push({ color: 'transparent', value: data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–', label: '上站转化' });
-        tipShow(ev.clientX, ev.clientY, '0' + (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
-      });
+        var tx, ty;
+        if (ev && ev.clientX !== undefined) { tx = ev.clientX; ty = ev.clientY; }
+        else { var rc = c.getBoundingClientRect(); tx = rc.left + rc.width / 2; ty = rc.top; }
+        tipShow(tx, ty, '0' + (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
+      }
+      g.addEventListener('pointermove', stationTip);
+      g.addEventListener('focus', stationTip);
       g.addEventListener('pointerleave', tipHide);
       g.addEventListener('blur', tipHide);
       svg.appendChild(g);
@@ -665,15 +703,14 @@
       elx.textContent = ' · ' + (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '% vs 上一周期';
     });
 
-    // 摩擦点批注
-    var mx = 0, mv = -1;
-    for (var s3 = 0; s3 < STAGES.length - 1; s3++) { var v = stuckOf(s3); if (v > mv) { mv = v; mx = s3; } }
+    // 摩擦点批注（停留率口径）
+    var fr = frictionOf();
     var note = document.getElementById('note'); note.textContent = '';
-    note.appendChild(document.createTextNode('当前最大摩擦点为「' + STAGES[mx] + '」—— '));
+    note.appendChild(document.createTextNode('当前最大摩擦点为「' + STAGES[fr.stage] + '」—— 近3日到站客户中 '));
     var nm = document.createElement('span'); nm.className = 'nm'; nm.style.color = cssv('--accent');
-    nm.textContent = fmt(mv) + ' 人';
+    nm.textContent = pct(fr.rate);
     note.appendChild(nm);
-    note.appendChild(document.createTextNode('停留，占在途 ' + (totalStuck ? pct(mv / totalStuck) : '–') + '。点击地图站点可切换下钻。'));
+    note.appendChild(document.createTextNode(' 仍停留未推进（' + fmt(stuckOf(fr.stage)) + ' 人）。点击地图站点可切换下钻。'));
   }
 
   function renderDrill() {
@@ -742,7 +779,7 @@
     note.appendChild(document.createTextNode('AI 协助的停留客户次日推进率 '));
     var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = pct(upA);
     note.appendChild(nm);
-    note.appendChild(document.createTextNode('，为未协助客户（' + pct(upB) + '）的 ' + (upA / upB).toFixed(1) + ' 倍。地图站点外圈琥珀色弧 = 该站 AI 协助占比。'));
+    note.appendChild(document.createTextNode('，为未协助客户（' + pct(upB) + '）的 ' + (upA / upB).toFixed(1) + ' 倍（全局口径示意值，未随筛选拆分）。地图站点外圈琥珀色弧 = 该站 AI 协助占比。'));
   }
 
   // ── 站点索引 ──────────────────────────────────────────
@@ -774,8 +811,12 @@
     var W = 980, H = 240, L = 56, R = 20, T = 18, B = 34;
     var pts = data.series.slice(-14);
     var maxV = Math.max.apply(null, pts.map(function (p) { return p.val; })) || 1;
-    var step = Math.pow(10, Math.floor(Math.log10(maxV)));
-    var top = Math.ceil(maxV / (step / 2)) * (step / 2);
+    // nice-number 刻度：步长取 1/2/2.5/5×10ⁿ，保证刻度是整洁数
+    var rawStep = maxV / 4;
+    var p10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var mm = rawStep / p10;
+    var step = (mm <= 1 ? 1 : mm <= 2 ? 2 : mm <= 2.5 ? 2.5 : mm <= 5 ? 5 : 10) * p10;
+    var top = step * 4;
     function X(i) { return L + i * (W - L - R) / (pts.length - 1); }
     function Y(v) { return T + (1 - v / top) * (H - T - B); }
 
