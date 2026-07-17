@@ -72,7 +72,7 @@
     letter-spacing: .5px; margin: 6px 0 8px; text-wrap: balance;
   }
   .slide .lede { font-size: 16.5px; color: var(--ink-soft); max-width: 46em; }
-  .slide-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .slide-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 6px; }
 
   .foot-note {
     margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line);
@@ -102,7 +102,7 @@
   .slide.dark .pageno { color: rgba(255,255,255,.45); }
 
   /* ═══ 封面 ═══ */
-  .cover .slide-body { justify-content: center; }
+  .cover .slide-body { justify-content: center; padding-top: 0; }
   .cover h1 {
     font-size: 46px; font-weight: 700; line-height: 1.3;
     letter-spacing: 1.5px; margin: 18px 0 18px; text-wrap: balance;
@@ -142,7 +142,20 @@
   .tile.ok { background: var(--ok-soft); border-color: #cfe8d8; }
   .tile.ok .t-label { color: var(--ok); }
 
-  /* ═══ 金句横幅 ═══ */
+  /* ═══ 关键设计提示（浅色，全篇仅用一次） ═══ */
+  .callout {
+    margin-top: 32px;
+    background: var(--gold-soft);
+    border: 1px solid #ecd9ac;
+    border-radius: 12px;
+    padding: 20px 26px;
+    display: flex; gap: 18px; align-items: flex-start;
+  }
+  .callout::before { content: ""; flex: none; width: 4px; align-self: stretch; background: var(--gold); border-radius: 2px; }
+  .callout h3 { font-size: 17.5px; font-weight: 700; margin-bottom: 4px; }
+  .callout p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; }
+
+  /* ═══ 金句横幅（全篇仅用一次） ═══ */
   .thesis {
     margin-top: 28px;
     background: linear-gradient(135deg, var(--navy), #17498f);
@@ -155,7 +168,7 @@
   .thesis small { display: block; font-size: 13px; font-weight: 400; color: #b7cdef; margin-top: 3px; }
 
   /* ═══ 时间轴 ═══ */
-  .timeline { margin-top: 44px; }
+  .timeline { margin-top: 68px; }
   .tl-track { display: grid; grid-template-columns: repeat(5, 1fr); position: relative; }
   .tl-track::before {
     content: ""; position: absolute; left: 4%; right: 4%; top: 9px;
@@ -185,10 +198,10 @@
   .tl-item.now .tl-tag { background: var(--gold); color: #0c2348; }
 
   /* ═══ 阶段状态列表 ═══ */
-  .status-rows { margin-top: 26px; display: flex; flex-direction: column; gap: 12px; }
+  .status-rows { margin-top: 34px; display: flex; flex-direction: column; gap: 18px; }
   .status-row {
-    display: grid; grid-template-columns: 128px 1fr; gap: 20px;
-    border: 1px solid var(--line); border-radius: 12px; padding: 16px 22px;
+    display: grid; grid-template-columns: 158px 1fr; gap: 24px;
+    border: 1px solid var(--line); border-radius: 12px; padding: 24px 30px;
     align-items: center; background: #fdfefe;
   }
   .status-chip {
@@ -199,15 +212,15 @@
   .status-chip.done { background: var(--ok-soft); color: var(--ok); }
   .status-chip.doing { background: var(--gold-soft); color: #8a6410; border: 1px solid #ecd9ac; }
   .status-chip.next { background: var(--accent-soft); color: var(--accent-deep); }
-  .status-row h3 { font-size: 15.5px; font-weight: 700; }
-  .status-row p { font-size: 13.5px; color: var(--ink-soft); }
+  .status-row h3 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+  .status-row p { font-size: 14.5px; color: var(--ink-soft); }
   .status-row.hot { border-color: #ecd9ac; background: #fffdf7; }
 
   /* ═══ 参与步骤 ═══ */
-  .steps { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+  .steps { margin-top: 32px; display: flex; flex-direction: column; gap: 13px; counter-reset: step; }
   .step {
-    display: grid; grid-template-columns: 44px 190px 1fr; gap: 18px; align-items: center;
-    border: 1px solid var(--line); border-radius: 12px; padding: 13px 20px; background: #fdfefe;
+    display: grid; grid-template-columns: 44px 210px 1fr; gap: 18px; align-items: center;
+    border: 1px solid var(--line); border-radius: 12px; padding: 17px 22px; background: #fdfefe;
     counter-increment: step;
   }
   .step::before {
@@ -218,11 +231,31 @@
     display: flex; align-items: center; justify-content: center;
     font-variant-numeric: tabular-nums;
   }
-  .step h3 { font-size: 14.5px; font-weight: 700; }
-  .step p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .step h3 { font-size: 15px; font-weight: 700; }
+  .step p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.65; }
+
+  /* ═══ 主论点 + 副论点（第 6 页） ═══ */
+  .who-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 18px; margin-top: 32px; }
+  .who-main {
+    background: linear-gradient(150deg, #0c2348 0%, #143f85 70%, #17498f 100%);
+    color: #fff; border-radius: 12px; padding: 32px 32px 28px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .who-main .t-label {
+    font-size: 12px; font-weight: 600; letter-spacing: 2.5px;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .who-main h3 { font-size: 22.5px; font-weight: 700; line-height: 1.5; margin-bottom: 14px; text-wrap: balance; }
+  .who-main p { font-size: 14px; color: #c4d7f3; line-height: 1.8; }
+  .who-main p b { color: #fff; }
+  .who-side { display: flex; flex-direction: column; gap: 14px; }
+  .who-side .tile { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ═══ 投入速览（第 8 页） ═══ */
+  .invest { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 32px; }
 
   /* ═══ 角色表 ═══ */
-  table.roles { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 14px; }
+  table.roles { width: 100%; border-collapse: collapse; margin-top: 30px; font-size: 14.5px; }
   table.roles th {
     text-align: left; font-size: 12.5px; letter-spacing: 2px; color: var(--accent-deep);
     padding: 10px 16px; border-bottom: 2px solid var(--accent-line); white-space: nowrap;
@@ -300,7 +333,7 @@
     .slide { padding: 30px 26px 26px; min-height: 0; }
     .cover h1 { font-size: 32px; }
     .slide h2 { font-size: 25px; }
-    .grid.c2, .grid.c3, .versus, .support, .gates { grid-template-columns: 1fr; }
+    .grid.c2, .grid.c3, .versus, .support, .gates, .who-grid, .invest { grid-template-columns: 1fr; }
     .tl-track { grid-template-columns: 1fr; gap: 18px; }
     .tl-track::before { left: 9px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; }
     .step { grid-template-columns: 44px 1fr; }
@@ -317,7 +350,7 @@
   <section class="slide dark cover">
     <div class="slide-head">
       <span class="kicker">AI 客服质量保障项目</span>
-      <span class="pageno">01 / 09</span>
+      <span class="pageno">01 / 10</span>
     </div>
     <div class="slide-body">
       <div>
@@ -335,8 +368,9 @@
           <span><b>05</b>当前阶段</span>
           <span><b>06</b>为什么需要你们</span>
           <span><b>07</b>具体要做什么</span>
-          <span><b>08</b>我们提供的支撑</span>
-          <span><b>09</b>底线与行动</span>
+          <span><b>08</b>分工与投入</span>
+          <span><b>09</b>我们提供的支撑</span>
+          <span><b>10</b>底线与行动</span>
         </div>
       </div>
     </div>
@@ -346,7 +380,7 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">Why · 项目背景</span>
-      <span class="pageno">02 / 09</span>
+      <span class="pageno">02 / 10</span>
     </div>
     <h2>我们为什么要做 AI 客服</h2>
     <p class="lede">客户咨询量持续增长，其中大量是高频重复问题；人工客服有峰谷、有交接，回答口径也难以完全统一。我们希望把这部分标准化问答交给系统，把人力留给真正复杂的客户。</p>
@@ -368,10 +402,11 @@
           <p>把简单重复问题交给系统处理，人工客服集中精力处理复杂、高价值的咨询。</p>
         </div>
       </div>
-      <div class="thesis">
-        <p>系统的关键设计：模型只负责「听懂问题」，不负责「编答案」。
-          <small>它做的是意图识别——识别客户在问哪一条已批准的问答，然后返回知识库原文；识别不了就按批准的话术兜底或转人工。它不会自由发挥。</small>
-        </p>
+      <div class="callout">
+        <div>
+          <h3>系统的关键设计：模型只负责「听懂问题」，不负责「编答案」</h3>
+          <p>它做的是意图识别——识别客户在问哪一条已批准的问答，然后返回知识库原文；识别不了就按批准的话术兜底或转人工。它不会自由发挥。</p>
+        </div>
       </div>
     </div>
   </section>
@@ -380,7 +415,7 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">What · UAT 的目标</span>
-      <span class="pageno">03 / 09</span>
+      <span class="pageno">03 / 10</span>
     </div>
     <h2>这轮 UAT 测试要解决什么问题</h2>
     <p class="lede">上线前，我们要用大量接近真实客户的问法去「考」这套系统，一方面证明它答得对，另一方面——更重要的——证明它在不该答的时候不会乱答。</p>
@@ -415,7 +450,7 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">When · 时间计划</span>
-      <span class="pageno">04 / 09</span>
+      <span class="pageno">04 / 10</span>
     </div>
     <h2>什么时间上线</h2>
     <p class="lede">按当前计划，正式上线目标是 <b>2026 年 10 月</b>。在此之前有两道关口：7–8 月完成 UAT 测试与整改，9 月小范围试点验证。</p>
@@ -464,7 +499,7 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">Where · 当前阶段</span>
-      <span class="pageno">05 / 09</span>
+      <span class="pageno">05 / 10</span>
     </div>
     <h2>现在到了哪一步</h2>
     <p class="lede">工具和流程已经全部就绪并试跑通过——接下来的每一步都需要业务判断才能往前走，这正是邀请你们加入的时点。</p>
@@ -499,31 +534,33 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">Who · 为什么是你们</span>
-      <span class="pageno">06 / 09</span>
+      <span class="pageno">06 / 10</span>
     </div>
     <h2>为什么这轮测试必须有业务参与</h2>
     <p class="lede">这不是客气话，而是流程的硬性规定：模型和技术团队在这套机制里没有权限替业务做判断。</p>
     <div class="slide-body">
-      <div class="grid c2">
-        <div class="tile soft">
+      <div class="who-grid">
+        <div class="who-main">
           <div class="t-label">制度规定</div>
-          <h3>模型只生成候选，不批准答案</h3>
-          <p>AI 可以起草测试问题、发现疑似缺口，但任何进入正式测试和知识库的内容，都必须经业务批准、敏感项经合规审核。没有你们的批准，测试无法往下走。</p>
+          <h3>模型只生成候选，<br>不批准答案</h3>
+          <p>AI 可以起草测试问题、发现疑似缺口，但任何进入正式测试和知识库的内容，都必须经业务批准、敏感项经合规审核。<b>没有你们的批准，测试无法往下走。</b></p>
         </div>
-        <div class="tile soft">
-          <div class="t-label">专业判断</div>
-          <h3>「这个答案对不对」只有业务知道</h3>
-          <p>一句话能不能对客户说、两个相近问题该不该给同一个答案、什么情况必须转人工——这些判断来自一线业务经验，任何模型和 IT 团队都替代不了。</p>
-        </div>
-        <div class="tile soft">
-          <div class="t-label">验收签署</div>
-          <h3>上线意见由业务出具</h3>
-          <p>最终「能不能上线」的业务意见由验收人签署，敏感项由合规签署。你们的确认就是上线证据链的一部分，对客户负责，也对结果负责。</p>
-        </div>
-        <div class="tile soft">
-          <div class="t-label">切身相关</div>
-          <h3>上线后替你们接第一通咨询</h3>
-          <p>这套系统上线后代表你们部门的口径面对客户。现在花在测试上的每一小时，都是在避免上线后替错误答案善后。</p>
+        <div class="who-side">
+          <div class="tile soft">
+            <div class="t-label">专业判断</div>
+            <h3>「这个答案对不对」只有业务知道</h3>
+            <p>一句话能不能对客户说、什么情况必须转人工——这些判断来自一线经验，模型和 IT 都替代不了。</p>
+          </div>
+          <div class="tile soft">
+            <div class="t-label">验收签署</div>
+            <h3>上线意见由业务出具</h3>
+            <p>「能不能上线」由验收人签署业务意见、合规签署敏感项，你们的确认就是上线证据链的一部分。</p>
+          </div>
+          <div class="tile soft">
+            <div class="t-label">切身相关</div>
+            <h3>上线后它替你们接第一通咨询</h3>
+            <p>系统上线后代表你们部门的口径面对客户，现在的每一小时测试，都是在避免上线后替错误答案善后。</p>
+          </div>
         </div>
       </div>
     </div>
@@ -533,10 +570,10 @@
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">How · 参与方式</span>
-      <span class="pageno">07 / 09</span>
+      <span class="pageno">07 / 10</span>
     </div>
     <h2>参加测试具体要做什么</h2>
-    <p class="lede">业务验收人的工作集中在 7–8 月，分批进行，绝大部分操作是在一个 Excel 工作簿里做「下拉选择 + 批注」，不需要任何技术背景。</p>
+    <p class="lede">业务验收人按顺序做五件事，绝大部分操作是在一个 Excel 工作簿里做「下拉选择 + 批注」，不需要任何技术背景。</p>
     <div class="slide-body">
       <div class="steps">
         <div class="step">
@@ -560,19 +597,49 @@
           <p>测试执行和判分自动完成后，一起看指标和失败案例，对整改和上线给出业务意见。</p>
         </div>
       </div>
-      <table class="roles">
-        <tr><th>角色</th><th>参与内容</th></tr>
-        <tr><td>部门负责人</td><td>指定 1–2 名业务验收人并为其预留审核时间；参加里程碑评审与上线决策。</td></tr>
-        <tr><td>合规审核人</td><td>只审敏感类条目：承诺、收费、利率、法律、投诉、个人信息及兜底话术。</td></tr>
-      </table>
     </div>
   </section>
 
-  <!-- ════════ 8 · 我们提供的支撑 ════════ -->
+  <!-- ════════ 8 · 分工与投入 ════════ -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Roles · 分工与投入</span>
+      <span class="pageno">08 / 10</span>
+    </div>
+    <h2>分工清楚，投入可控</h2>
+    <p class="lede">每个角色只做自己那部分判断，时间集中在 7–8 月并分批安排，不会持续占用日常工作。</p>
+    <div class="slide-body">
+      <table class="roles">
+        <tr><th>角色</th><th>参与内容</th></tr>
+        <tr><td>业务验收人</td><td>完成上一页的五步审核：确认体检结果、审核用例、决定缺口处理、确认期望、出具上线意见。</td></tr>
+        <tr><td>部门负责人</td><td>指定 1–2 名业务验收人并为其预留审核时间；参加里程碑评审与上线决策。</td></tr>
+        <tr><td>合规审核人</td><td>只审敏感类条目：承诺、收费、利率、法律、投诉、个人信息及兜底话术。</td></tr>
+      </table>
+      <div class="invest">
+        <div class="tile">
+          <div class="t-label">时间窗口</div>
+          <h3>集中在 7–8 月</h3>
+          <p>审核任务分批推送，每批有明确的数量预告和截止时间，方便与日常工作错峰。</p>
+        </div>
+        <div class="tile">
+          <div class="t-label">工作形式</div>
+          <h3>Excel 下拉 + 批注</h3>
+          <p>全部审核在一个工作簿内完成，不用写文档、不用学新工具。</p>
+        </div>
+        <div class="tile">
+          <div class="t-label">上手成本</div>
+          <h3>启动培训约 1 小时</h3>
+          <p>启动会现场演示工作簿操作，之后全程有项目组专人支持。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ 9 · 我们提供的支撑 ════════ -->
   <section class="slide">
     <div class="slide-head">
       <span class="kicker">Support · 我们做了什么来降低负担</span>
-      <span class="pageno">08 / 09</span>
+      <span class="pageno">09 / 10</span>
     </div>
     <h2>你们只做判断，其余环节都已自动化</h2>
     <p class="lede">项目组已经把重复性、技术性的工作全部做掉，业务的时间只花在业务判断上。</p>
@@ -604,33 +671,33 @@
         </div>
         <div class="item">
           <div>
-            <h3>分批推送，不搞集中突击</h3>
-            <p>审核任务按批次安排，每批都有明确的截止时间和数量预告，方便与日常工作错峰。</p>
+            <h3>候选自带参考信息</h3>
+            <p>每条测试问题都关联对应的知识库条目和独立复核意见，判断时不用来回查找原文。</p>
           </div>
         </div>
         <div class="item">
           <div>
-            <h3>专人支持</h3>
-            <p>项目组提供操作说明和启动培训，审核中遇到任何问题随时对接支持人员。</p>
+            <h3>失败案例带完整证据</h3>
+            <p>每条失败记录都保留客户提问、期望答案和实际返回的逐条对应，评审时看得清问题出在哪。</p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ════════ 9 · 底线与行动 ════════ -->
+  <!-- ════════ 10 · 底线与行动 ════════ -->
   <section class="slide dark">
     <div class="slide-head">
       <span class="kicker">Commitment · 底线与行动</span>
-      <span class="pageno">09 / 09</span>
+      <span class="pageno">10 / 10</span>
     </div>
-    <h2 style="color:#fff;">不达标，就不上线</h2>
-    <p class="lede" style="color:#c4d7f3;">这些是写进验收方案的硬性底线，任何一条不达标都会阻断上线——你们在测试中的每一个判断，都是这些底线的依据。</p>
+    <h2 style="color:#fff;">四个零，才能上线</h2>
+    <p class="lede" style="color:#c4d7f3;">验收方案写死了四条零容忍底线：以下任何一项计数不为零，当前版本就不允许上线——你们在测试中的每一个判断，都是这些底线的依据。</p>
     <div class="slide-body">
       <div class="gates">
         <div class="gate">
-          <div class="g-num">100%</div>
-          <div class="g-name">敏感 / 合规红线问题正确处置率</div>
+          <div class="g-num">0</div>
+          <div class="g-name">敏感 / 合规红线问题处置错误</div>
         </div>
         <div class="gate">
           <div class="g-num">0</div>
