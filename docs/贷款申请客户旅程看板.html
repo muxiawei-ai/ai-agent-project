@@ -78,7 +78,7 @@
   }
   .figcap b { font-style: normal; }
 
-  .main { display: grid; grid-template-columns: 1fr 348px; gap: 14px; align-items: stretch; }
+  .main { display: grid; grid-template-columns: 1fr 348px; gap: 14px; align-items: start; }
   .below { margin-top: 14px; }
   @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
 
@@ -111,6 +111,7 @@
   .panel {
     background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px;
     padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 14px;   /* 长地图滚动时侧栏跟随 */
   }
   .panel .eyebrow { text-align: right; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -139,6 +140,20 @@
   .rrow .dots i.acc { background: var(--accent); }
   .rrow .rv { font-family: var(--mono); font-size: 11px; color: var(--ink-2); white-space: nowrap; }
   .rrow .rv b { color: var(--ink); font-size: 12px; }
+
+  /* ── 站点索引 ───────────────────── */
+  .idx-rows { margin-top: 8px; display: flex; flex-direction: column; }
+  .irow {
+    appearance: none; background: none; border: none; text-align: left; cursor: pointer;
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: baseline;
+    padding: 5.5px 6px; border-bottom: 1px dotted var(--hairline); color: var(--ink);
+  }
+  .irow:hover { background: rgba(255,255,255,0.7); }
+  .irow[aria-pressed="true"] { background: #fdfcf7; box-shadow: inset 2.5px 0 0 var(--accent); }
+  .irow .ino { font-family: var(--mono); font-size: 10px; color: var(--ink-2); }
+  .irow .inm { font-family: var(--serif); font-size: 13px; }
+  .irow[aria-pressed="true"] .inm { font-weight: 700; }
+  .irow .ist { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); white-space: nowrap; }
 
   /* ── 趋势图 ─────────────────────── */
   .trend-svg { display: block; width: 100%; height: auto; margin-top: 6px; }
@@ -215,7 +230,7 @@
           <h2>客户旅程全景图</h2>
           <span class="eyebrow" id="map-cap"></span>
         </div>
-        <svg class="map-svg" id="map" viewBox="0 0 980 600" role="img" aria-label="客户旅程地图：七个站点与当前停留人数"></svg>
+        <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="img" aria-label="客户旅程地图：七个站点与当前停留人数"></svg>
         <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数；<span style="color:var(--accent)">红色站点</span>为当前最大摩擦点。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
       </div>
 
@@ -234,14 +249,18 @@
           <div class="dcap" id="drill-cap"></div>
           <div class="rrows" id="drill-regions"></div>
         </div>
-        <div class="figcap" style="margin-top:auto"><b>图 2</b> · 每一圆点 ≈ <span id="dot-unit">–</span> 名停留客户；<span style="color:var(--accent)">红点行</span>为该站停留最多的大区。</div>
+        <div class="figcap"><b>图 2</b> · 每一圆点 ≈ <span id="dot-unit">–</span> 名停留客户；<span style="color:var(--accent)">红点行</span>为该站停留最多的大区。</div>
+        <div class="idx">
+          <div class="eyebrow"><span class="no">04</span> · STATION INDEX</div>
+          <div class="idx-rows" id="idx-rows"></div>
+        </div>
       </div>
     </div>
 
     <div class="fig below">
       <div class="map-head">
         <h2>每日进入用户趋势</h2>
-        <span class="eyebrow"><span class="no">04</span> · DAILY INFLOW</span>
+        <span class="eyebrow"><span class="no">05</span> · DAILY INFLOW</span>
       </div>
       <svg class="trend-svg" id="trend" viewBox="0 0 980 240" role="img" aria-label="每日进入用户趋势"></svg>
       <div class="figcap"><b>图 3</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
@@ -402,14 +421,20 @@
   }
 
   // ── 旅程地图 ──────────────────────────────────────────
-  // 站点坐标（蜿蜒路线）与注释框位置
-  var PTS = [
-    { x: 105, y: 165 }, { x: 340, y: 110 }, { x: 585, y: 155 }, { x: 830, y: 250 },
-    { x: 610, y: 385 }, { x: 350, y: 430 }, { x: 120, y: 505 }
+  // 路线 = 站点(st) + 隐形转弯路标点，让曲线像地图上的驿路一样大幅蜿蜒
+  var ROUTE = [
+    { x: 150, y: 130, st: 0 }, { x: 420, y: 72 },
+    { x: 690, y: 150, st: 1 }, { x: 868, y: 290 },
+    { x: 660, y: 430, st: 2 }, { x: 400, y: 468 },
+    { x: 185, y: 580, st: 3 }, { x: 116, y: 730 },
+    { x: 390, y: 820, st: 4 }, { x: 665, y: 852 },
+    { x: 830, y: 980, st: 5 }, { x: 640, y: 1102 },
+    { x: 320, y: 1105, st: 6 }
   ];
-  var BOX = [   // 注释框左上角 + 引线接点方位
-    { x: 30,  y: 40 },  { x: 275, y: 22 },  { x: 520, y: 45 },  { x: 745, y: 118 },
-    { x: 668, y: 468 }, { x: 300, y: 512 }, { x: 30,  y: 385 }
+  var SP = ROUTE.filter(function (p) { return p.st !== undefined; });   // 站点路点
+  var BOX = [   // 注释框左上角（nx/ny 可覆盖停留数字位置）
+    { x: 30,  y: 30 },  { x: 600, y: 38 },  { x: 776, y: 470 }, { x: 30,  y: 450 },
+    { x: 255, y: 906 }, { x: 790, y: 1088, nx: 896, ny: 990 }, { x: 95, y: 985 }
   ];
   var BW = 168, BH = 48;
 
@@ -447,7 +472,7 @@
     pat.appendChild(el('circle', { cx: 1, cy: 1, r: 0.9, fill: 'rgba(36,39,46,0.055)' }));
     defs.appendChild(pat);
     svg.appendChild(defs);
-    svg.appendChild(el('rect', { x: 0, y: 0, width: 980, height: 600, fill: 'url(#dotgrid)' }));
+    svg.appendChild(el('rect', { x: 0, y: 0, width: 980, height: 1180, fill: 'url(#dotgrid)' }));
 
     // 罗盘（装饰）
     var comp = el('g', {});
@@ -456,29 +481,37 @@
     comp.appendChild(txt(930, 76, 'N', 'tag', 'middle'));
     svg.appendChild(comp);
 
-    var segs = catmull(PTS);
+    var spans = catmull(ROUTE);
     var maxIn = data.entered[0] || 1;
+    // 每一小段曲线归属于哪一站间区段（用于通道宽度）
+    function segOf(spanIdx) {
+      var seen = 0;
+      for (var j = 0; j <= spanIdx; j++) if (ROUTE[j].st !== undefined) seen++;
+      return seen - 1;
+    }
 
-    // 通道（宽度 ∝ 进入下一站人数）
-    segs.forEach(function (s, i) {
-      var w = 4 + 22 * (data.entered[i + 1] / maxIn);
+    // 通道（宽度 ∝ 进入下一站人数，逐站收窄）
+    spans.forEach(function (s, i) {
+      var seg = Math.min(segOf(i), STAGES.length - 2);
+      var w = 4 + 22 * (data.entered[seg + 1] / maxIn);
       svg.appendChild(el('path', { d: segPath(s), 'stroke-width': w.toFixed(1) }, 'ribbon'));
     });
     // 虚线路线（地图感）
-    segs.forEach(function (s) { svg.appendChild(el('path', { d: segPath(s) }, 'route')); });
+    spans.forEach(function (s) { svg.appendChild(el('path', { d: segPath(s) }, 'route')); });
 
-    // 段中转化率标签
-    segs.forEach(function (s, i) {
-      var m = bezMid(s);
-      var label = '→ ' + (data.entered[i] ? pct(data.entered[i + 1] / data.entered[i]) : '–');
+    // 转弯路标点处的转化率标签（恰为两站之间）
+    ROUTE.forEach(function (p, i) {
+      if (p.st !== undefined) return;
+      var seg = segOf(i - 1);
+      var label = '→ ' + (data.entered[seg] ? pct(data.entered[seg + 1] / data.entered[seg]) : '–');
       var tw = label.length * 6.6 + 10;
-      svg.appendChild(el('rect', { x: m.x - tw / 2, y: m.y - 20, width: tw, height: 15, rx: 2 }, 'conv-bg'));
-      svg.appendChild(txt(m.x, m.y - 8.5, label, 'conv-l', 'middle'));
+      svg.appendChild(el('rect', { x: p.x - tw / 2, y: p.y - 26, width: tw, height: 15, rx: 2 }, 'conv-bg'));
+      svg.appendChild(txt(p.x, p.y - 14.5, label, 'conv-l', 'middle'));
     });
 
     // 入口 / 终点 标记
-    svg.appendChild(txt(PTS[0].x - 62, PTS[0].y - 40, '入口 · ENTRY', 'tag'));
-    svg.appendChild(txt(PTS[6].x + 40, PTS[6].y + 46, '终点 · ACTIVATED', 'tag'));
+    svg.appendChild(txt(SP[0].x - 118, SP[0].y + 5, '入口 · ENTRY', 'tag'));
+    svg.appendChild(txt(SP[6].x, SP[6].y - 34, '终点 · ACTIVATED', 'tag', 'middle'));
 
     // 最大摩擦点（停留最多的站）
     var maxStuckStage = 0, maxStuckVal = -1;
@@ -490,7 +523,7 @@
     // 注释框 + 引线 + 站点
     STAGES.forEach(function (name, s) {
       var isLast = s === STAGES.length - 1;
-      var p = PTS[s], b = BOX[s];
+      var p = SP[s], b = BOX[s];
       var stuck = isLast ? null : stuckOf(s);
       var isFriction = !isLast && s === maxStuckStage;
       var selected = s === state.stage;
@@ -529,19 +562,26 @@
         g.appendChild(core);
       }
 
-      // 站点数字：当前停留（终点=期间激活）
+      // 站点数字：当前停留（终点=期间激活）；nx/ny 可指定避让位置
       var below = b.y < p.y;   // 框在上方 → 数字放下方
-      var ny = below ? p.y + r + 20 : p.y - r - 16;
-      var nv = txt(p.x, ny, isLast ? fmt(data.entered[6]) : fmt(stuck), 'nnum', 'middle');
+      var nX = b.nx !== undefined ? b.nx : p.x;
+      var nY = b.ny !== undefined ? b.ny : (below ? p.y + r + 20 : p.y - r - 16);
+      var capDown = b.ny !== undefined ? true : below;
+      var nv = txt(nX, nY, isLast ? fmt(data.entered[6]) : fmt(stuck), 'nnum', 'middle');
       if (isFriction) nv.style.fill = accent;
       g.appendChild(nv);
-      g.appendChild(txt(p.x, ny + (below ? 13 : -13), isLast ? '期间激活' : '当前停留', 'ncap', 'middle'));
+      g.appendChild(txt(nX, nY + (capDown ? 13 : -13), isLast ? '期间激活' : '当前停留', 'ncap', 'middle'));
 
       // 交互
+      function pick() {
+        state.stage = s;
+        var d2 = loadData(state.range, state.region);
+        renderMap(d2); renderDrill(); renderIndex(d2);
+      }
       if (!isLast) {
-        g.addEventListener('click', function () { state.stage = s; renderMap(loadData(state.range, state.region)); renderDrill(); });
+        g.addEventListener('click', pick);
         g.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); state.stage = s; renderMap(loadData(state.range, state.region)); renderDrill(); }
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); }
         });
       }
       g.addEventListener('pointermove', function (ev) {
@@ -623,6 +663,28 @@
       row.addEventListener('focus', show);
       row.addEventListener('pointerleave', tipHide);
       row.addEventListener('blur', tipHide);
+      root.appendChild(row);
+    });
+  }
+
+  // ── 站点索引 ──────────────────────────────────────────
+  function renderIndex(data) {
+    var root = document.getElementById('idx-rows'); root.textContent = '';
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var row = document.createElement('button'); row.className = 'irow';
+      row.setAttribute('aria-pressed', String(s === state.stage));
+      var no = document.createElement('span'); no.className = 'ino'; no.textContent = '0' + (s + 1); row.appendChild(no);
+      var nm = document.createElement('span'); nm.className = 'inm'; nm.textContent = name; row.appendChild(nm);
+      var st = document.createElement('span'); st.className = 'ist';
+      st.textContent = isLast ? '激活 ' + fmt(data.entered[6]) : '进入 ' + fmt(data.entered[s]) + ' · 停留 ' + fmt(stuckOf(s));
+      row.appendChild(st);
+      if (!isLast) {
+        row.addEventListener('click', function () {
+          state.stage = s;
+          renderMap(data); renderDrill(); renderIndex(data);
+        });
+      } else { row.style.cursor = 'default'; }
       root.appendChild(row);
     });
   }
@@ -726,6 +788,7 @@
     renderMap(data);
     renderKpis(data, prevEntered);
     renderDrill();
+    renderIndex(data);
     renderTrend(data);
     renderTable(data);
   }
