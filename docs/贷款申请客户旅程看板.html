@@ -3,306 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>贷款申请客户旅程看板</title>
+<title>贷款申请客户旅程图鉴</title>
 <style>
-  :root { color-scheme: light dark; }
+  :root { color-scheme: light; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .viz-root {
-    color-scheme: light;
-    --surface-1: #fcfcfb;      /* 卡片/图表面 */
-    --page: #f9f9f7;           /* 页面底 */
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --grid: #e1e0d9;
-    --baseline: #c3c2b7;
-    --border: rgba(11,11,11,0.10);
-    --series-in: #2a78d6;      /* 进入用户（蓝） */
-    --series-stuck: #008300;   /* 当前停留（绿） */
-    --series-in-wash: rgba(42,120,214,0.10);
-    --good-text: #006300;
-    --hover-wash: rgba(11,11,11,0.045);
-    --select-wash: rgba(42,120,214,0.08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1: #1a1a19;
-      --page: #0d0d0d;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #898781;
-      --grid: #2c2c2a;
-      --baseline: #383835;
-      --border: rgba(255,255,255,0.10);
-      --series-in: #3987e5;
-      --series-stuck: #008300;
-      --series-in-wash: rgba(57,135,229,0.14);
-      --good-text: #0ca30c;
-      --hover-wash: rgba(255,255,255,0.06);
-      --select-wash: rgba(57,135,229,0.12);
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --grid: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255,255,255,0.10);
-    --series-in: #3987e5;
-    --series-stuck: #008300;
-    --series-in-wash: rgba(57,135,229,0.14);
-    --good-text: #0ca30c;
-    --hover-wash: rgba(255,255,255,0.06);
-    --select-wash: rgba(57,135,229,0.12);
+  .atlas {
+    /* 编辑排版风 · 纸面科研插画 */
+    --page: #f3efe2;         /* 页面底（米灰） */
+    --paper: #fbf8ef;        /* 图面纸色 */
+    --panel: #e9eef0;        /* 侧栏冷灰蓝 */
+    --ink: #24272e;          /* 主墨色 */
+    --ink-2: #565a63;        /* 次级墨 */
+    --muted: #8b8574;        /* 弱化（暖灰） */
+    --hairline: #d9d2bf;     /* 细线 */
+    --blue: #38699f;         /* 旅程主色（石板蓝） */
+    --blue-wash: rgba(56,105,159,0.22);
+    --accent: #b5502f;       /* 砖红 · 摩擦点/强调 */
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
   }
 
-  .viz-root {
-    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  .atlas {
+    font-family: var(--serif);
     background: var(--page);
-    color: var(--text-primary);
+    color: var(--ink);
     min-height: 100vh;
-    padding: 24px 20px 48px;
+    padding: 30px 22px 56px;
   }
-  .wrap { max-width: 1200px; margin: 0 auto; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
 
-  /* ── 页头 ─────────────────────────── */
-  header h1 { font-size: 22px; font-weight: 650; letter-spacing: 0.2px; }
-  header .sub { margin-top: 6px; font-size: 13px; color: var(--text-secondary); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-  .badge {
-    font-size: 11px; padding: 2px 8px; border-radius: 999px;
-    border: 1px solid var(--border); color: var(--text-muted);
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    color: var(--ink-2); text-transform: uppercase;
+  }
+  .eyebrow .no { color: var(--accent); }
+
+  header .eyebrow { margin-bottom: 10px; }
+  header h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  header .rule { border: none; border-top: 1.5px solid var(--ink); margin: 14px 0 10px; }
+  header .sub {
+    display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
   }
 
-  /* ── 筛选行 ───────────────────────── */
-  .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0 16px; }
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
-  .seg button {
-    appearance: none; border: none; background: none; cursor: pointer;
-    font: inherit; font-size: 13px; color: var(--text-secondary);
-    padding: 7px 14px; border-right: 1px solid var(--border);
+  /* ── 筛选行 ─────────────────────── */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 22px 0 18px; }
+  .filters .flabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--muted); }
+  .seg { display: inline-flex; gap: 6px; }
+  .seg button, .tbl-toggle {
+    appearance: none; cursor: pointer; background: var(--paper);
+    border: 1px solid var(--hairline); border-radius: 2px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    padding: 6px 13px;
   }
-  .seg button:last-child { border-right: none; }
-  .seg button:hover { background: var(--hover-wash); }
-  .seg button[aria-pressed="true"] { background: var(--select-wash); color: var(--text-primary); font-weight: 600; }
+  .seg button:hover, .tbl-toggle:hover { border-color: var(--ink-2); }
+  .seg button[aria-pressed="true"] {
+    border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff;
+  }
   .filters select {
-    font: inherit; font-size: 13px; color: var(--text-primary);
-    background: var(--surface-1); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 10px; cursor: pointer;
-  }
-  .filters .flabel { font-size: 12px; color: var(--text-muted); }
-
-  /* ── 卡片 ─────────────────────────── */
-  .card {
-    background: var(--surface-1); border: 1px solid var(--border);
-    border-radius: 12px; padding: 18px 20px;
-  }
-  .card h2 { font-size: 14px; font-weight: 650; }
-  .card .cap { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-
-  /* ── KPI 行 ───────────────────────── */
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-  .tile .tl { font-size: 12px; color: var(--text-secondary); }
-  .tile .tv { font-size: 30px; font-weight: 600; margin-top: 6px; line-height: 1.1; }
-  .tile .td { font-size: 12px; margin-top: 6px; color: var(--text-muted); }
-  .tile .td .up { color: var(--good-text); font-weight: 600; }
-  .tile .td .down { color: var(--text-secondary); font-weight: 600; }
-  .tile svg { display: block; margin-top: 8px; }
-
-  /* ── 主区布局 ─────────────────────── */
-  .main { display: grid; grid-template-columns: 7fr 5fr; gap: 12px; align-items: start; }
-  .below { margin-top: 12px; }
-  @media (max-width: 900px) {
-    .kpis { grid-template-columns: repeat(2, 1fr); }
-    .main { grid-template-columns: 1fr; }
+    font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 2px;
+    padding: 6px 9px; cursor: pointer;
   }
 
-  /* ── 图例 ─────────────────────────── */
-  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); align-items: center; }
-  .legend .k { display: inline-flex; align-items: center; gap: 6px; }
-  .legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .legend .ln { width: 14px; height: 2px; border-radius: 1px; display: inline-block; }
-
-  /* ── 漏斗（旅程步骤） ─────────────── */
-  .funnel { margin-top: 14px; display: flex; flex-direction: column; }
-  .stage {
-    appearance: none; border: none; background: none; font: inherit; text-align: left;
-    width: 100%; cursor: pointer; color: inherit;
-    display: grid; grid-template-columns: 108px 1fr 84px; gap: 12px; align-items: center;
-    padding: 9px 10px; border-radius: 8px; border: 1px solid transparent;
+  /* ── 图面卡片 ───────────────────── */
+  .fig {
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 20px 22px 16px;
   }
-  .stage:hover { background: var(--hover-wash); }
-  .stage[aria-pressed="true"] { background: var(--select-wash); border-color: var(--border); }
-  .stage .sn { font-size: 13px; color: var(--text-primary); }
-  .stage .sn .idx { color: var(--text-muted); font-size: 11px; margin-right: 5px; }
-  .stage .bars { display: flex; flex-direction: column; gap: 2px; }
-  .stage .brow { display: flex; align-items: center; height: 16px; }
-  .stage .bar { height: 16px; border-radius: 0 4px 4px 0; min-width: 2px; }
-  .stage .bar.in { background: var(--series-in); }
-  .stage .bar.stuck { background: var(--series-stuck); }
-  .stage .bv { font-size: 11.5px; color: var(--text-secondary); margin-left: 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .stage .conv { font-size: 12px; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
-  .stage .conv .cr { color: var(--text-secondary); font-weight: 600; }
-  .funnel-hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+  .figcap {
+    font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--ink-2);
+    margin-top: 10px; line-height: 1.6;
+  }
+  .figcap b { font-style: normal; }
 
-  /* ── 下钻（按大区） ───────────────── */
-  .drill-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .drill-total { font-size: 26px; font-weight: 600; margin-top: 10px; }
-  .drill-total small { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
-  .regions { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .main { display: grid; grid-template-columns: 1fr 348px; gap: 14px; align-items: stretch; }
+  .below { margin-top: 14px; }
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+  /* ── 旅程地图 ───────────────────── */
+  .map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .map-head h2 { font-size: 17px; }
+  .map-svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+  .map-svg text { font-family: var(--mono); }
+  .map-svg .t-serif { font-family: var(--serif); }
+  .map-svg .ribbon { stroke: var(--blue-wash); fill: none; stroke-linecap: round; }
+  .map-svg .route { stroke: var(--blue); fill: none; stroke-width: 1.6; stroke-dasharray: 1 7; stroke-linecap: round; }
+  .map-svg .station-c { fill: var(--paper); stroke: var(--blue); stroke-width: 2; }
+  .map-svg .station-core { fill: var(--blue); }
+  .map-svg .st { cursor: pointer; }
+  .map-svg .st:hover .station-c { stroke-width: 3; }
+  .map-svg .st:focus { outline: none; }
+  .map-svg .st:focus .station-c { stroke-width: 3; }
+  .map-svg .abox { fill: #fff; stroke: var(--hairline); }
+  .map-svg .abox-t1 { font-size: 10px; letter-spacing: 0.14em; fill: var(--ink-2); }
+  .map-svg .abox-t2 { font-family: var(--serif); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .map-svg .abox-t3 { font-size: 10.5px; fill: var(--ink-2); }
+  .map-svg .leader { stroke: var(--ink-2); stroke-width: 0.8; fill: none; }
+  .map-svg .conv-l { font-size: 11px; fill: var(--ink-2); }
+  .map-svg .conv-bg { fill: var(--paper); opacity: 0.92; }
+  .map-svg .nnum { font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .map-svg .ncap { font-size: 9px; letter-spacing: 0.18em; fill: var(--muted); }
+  .map-svg .tag { font-size: 9.5px; letter-spacing: 0.22em; fill: var(--muted); }
+
+  /* ── 侧栏速览 ───────────────────── */
+  .panel {
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .panel .eyebrow { text-align: right; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
+  .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
+  .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); margin-left: 2px; }
+  .sbox .v.acc { color: var(--accent); }
+  .sbox .l { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-top: 5px; line-height: 1.5; }
+  .note {
+    border: 1px solid var(--hairline); background: #fdfcf7; padding: 10px 12px;
+    font-style: italic; font-size: 12.5px; line-height: 1.65; color: var(--ink);
+  }
+  .note .nm { font-family: var(--mono); font-style: normal; font-size: 11px; }
+
+  .drill h3 { font-size: 15px; margin: 2px 0 1px; }
+  .drill .dcap { font-family: var(--mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.06em; }
+  .rrows { margin-top: 10px; display: flex; flex-direction: column; }
   .rrow {
-    display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center;
-    padding: 5px 6px; border-radius: 6px;
+    display: grid; grid-template-columns: 42px 1fr auto; gap: 9px; align-items: center;
+    padding: 5.5px 4px; border-bottom: 1px dotted var(--hairline);
   }
-  .rrow:hover { background: var(--hover-wash); }
-  .rrow .rn { font-size: 12.5px; color: var(--text-primary); }
-  .rrow .rb { display: flex; align-items: center; height: 16px; }
-  .rrow .bar { height: 16px; border-radius: 0 4px 4px 0; background: var(--series-in); min-width: 2px; }
-  .rrow .bv { font-size: 11.5px; color: var(--text-secondary); margin-left: 7px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rrow:hover { background: rgba(255,255,255,0.7); }
+  .rrow .rn { font-size: 13px; }
+  .rrow .dots { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+  .rrow .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--blue); display: block; }
+  .rrow .dots i.acc { background: var(--accent); }
+  .rrow .rv { font-family: var(--mono); font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+  .rrow .rv b { color: var(--ink); font-size: 12px; }
 
-  /* ── 趋势图 ───────────────────────── */
-  .trend-svg { display: block; width: 100%; height: auto; margin-top: 12px; }
-  .trend-svg text { font-family: inherit; font-size: 11px; fill: var(--text-muted); }
-  .trend-svg .gl { stroke: var(--grid); stroke-width: 1; }
-  .trend-svg .bl { stroke: var(--baseline); stroke-width: 1; }
-  .trend-svg .ser { stroke: var(--series-in); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
-  .trend-svg .wash { fill: var(--series-in-wash); }
-  .trend-svg .xh { stroke: var(--baseline); stroke-width: 1; }
-  .trend-svg .dot { fill: var(--series-in); stroke: var(--surface-1); stroke-width: 2; }
+  /* ── 趋势图 ─────────────────────── */
+  .trend-svg { display: block; width: 100%; height: auto; margin-top: 6px; }
+  .trend-svg text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .trend-svg .gl { stroke: var(--hairline); stroke-width: 1; }
+  .trend-svg .bl { stroke: var(--ink-2); stroke-width: 1; }
+  .trend-svg .ser { stroke: var(--blue); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-svg .xh { stroke: var(--ink-2); stroke-width: 0.8; stroke-dasharray: 3 3; }
+  .trend-svg .dot { fill: var(--blue); stroke: var(--paper); stroke-width: 2; }
+  .trend-svg .endbox { fill: #fff; stroke: var(--ink); stroke-width: 1; }
+  .trend-svg .endtxt { font-size: 12px; font-weight: 700; fill: var(--ink); }
 
-  /* ── 提示框 ───────────────────────── */
+  /* ── 提示框 ─────────────────────── */
   .tip {
     position: fixed; z-index: 30; pointer-events: none; display: none;
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 11px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-    max-width: 260px;
+    background: #fffef9; border: 1px solid var(--ink); border-radius: 2px;
+    padding: 9px 12px; font-size: 12px; box-shadow: 3px 3px 0 rgba(36,39,46,0.12);
+    max-width: 270px; font-family: var(--serif);
   }
-  .tip .tt { color: var(--text-muted); margin-bottom: 4px; }
+  .tip .tt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--ink-2); margin-bottom: 5px; }
   .tip .trow { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
-  .tip .tk { width: 12px; height: 2px; border-radius: 1px; flex: none; }
-  .tip .tval { font-weight: 650; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-  .tip .tlab { color: var(--text-secondary); }
+  .tip .tk { width: 12px; height: 2px; flex: none; }
+  .tip .tval { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tip .tlab { color: var(--ink-2); font-size: 11.5px; }
 
-  /* ── 表格视图 ─────────────────────── */
-  .tbl-toggle {
-    appearance: none; font: inherit; font-size: 12px; cursor: pointer;
-    background: none; border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text-secondary); padding: 5px 12px;
-  }
-  .tbl-toggle:hover { background: var(--hover-wash); }
+  /* ── 表格 ───────────────────────── */
+  .tbl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .tbl-head h2 { font-size: 17px; }
   .tbl-wrap { overflow-x: auto; margin-top: 12px; }
   table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  th { color: var(--text-muted); font-weight: 500; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 500;
+    color: var(--ink-2); border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--hairline);
+  }
+  th, td { text-align: right; padding: 7px 10px; white-space: nowrap; }
+  tbody td { border-bottom: 1px dotted var(--hairline); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
   th:first-child, td:first-child { text-align: left; }
-  td:first-child { color: var(--text-primary); }
-  td { color: var(--text-secondary); }
+  tbody td:first-child { font-family: var(--serif); font-size: 13px; color: var(--ink); }
 
-  footer { margin-top: 22px; font-size: 12px; color: var(--text-muted); line-height: 1.8; }
+  footer { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; font-style: italic; }
+  footer code { font-family: var(--mono); font-style: normal; font-size: 11px; }
 </style>
 </head>
 <body>
-<div class="viz-root">
+<div class="atlas">
   <div class="wrap">
 
     <header>
-      <h1>贷款申请客户旅程看板</h1>
+      <div class="eyebrow"><span class="no">01</span> · LOAN APPLICATION · CUSTOMER JOURNEY ATLAS</div>
+      <h1>贷款申请客户旅程图鉴：客户此刻在旅途的哪一站</h1>
+      <hr class="rule">
       <div class="sub">
-        <span>申请发送 → 开始操作 → 提交申请 → 还款卡验证 → 签署电子合同 → 提交放款 → 合同激活</span>
-        <span class="badge">演示数据 · 每日 T+1 08:00 刷新</span>
+        <span>七站旅程 · 申请发送 → 合同激活</span>
         <span id="refresh-at"></span>
+        <span>演示数据 · 每日 T+1 08:00 刷新</span>
       </div>
     </header>
 
     <div class="filters" role="group" aria-label="筛选">
-      <span class="flabel">日期范围</span>
+      <span class="flabel">日期范围 RANGE</span>
       <div class="seg" id="range-seg">
         <button data-range="1" aria-pressed="false">今日</button>
         <button data-range="7" aria-pressed="true">近7天</button>
         <button data-range="30" aria-pressed="false">近30天</button>
       </div>
-      <span class="flabel">大区</span>
+      <span class="flabel">大区 REGION</span>
       <select id="region-sel" aria-label="大区筛选"></select>
     </div>
 
-    <div class="kpis">
-      <div class="card tile">
-        <div class="tl">期间进入用户（申请发送）</div>
-        <div class="tv" id="kpi-in">–</div>
-        <div class="td" id="kpi-in-delta"></div>
-        <svg id="kpi-spark" width="120" height="28" viewBox="0 0 120 28" aria-hidden="true"></svg>
-      </div>
-      <div class="card tile">
-        <div class="tl">期间合同激活（完成放款）</div>
-        <div class="tv" id="kpi-done">–</div>
-        <div class="td" id="kpi-done-delta"></div>
-      </div>
-      <div class="card tile">
-        <div class="tl">端到端转化率</div>
-        <div class="tv" id="kpi-conv">–</div>
-        <div class="td">合同激活 ÷ 申请发送</div>
-      </div>
-      <div class="card tile">
-        <div class="tl">当前在途停留用户</div>
-        <div class="tv" id="kpi-stuck">–</div>
-        <div class="td">快照口径 · 不随日期范围变化</div>
-      </div>
-    </div>
-
     <div class="main">
-      <div class="card">
-        <div class="drill-head">
-          <div>
-            <h2>客户旅程漏斗</h2>
-            <div class="cap" id="funnel-cap"></div>
-          </div>
-          <div class="legend">
-            <span class="k"><span class="sw" style="background:var(--series-in)"></span>期间进入</span>
-            <span class="k"><span class="sw" style="background:var(--series-stuck)"></span>当前停留</span>
-          </div>
+      <div class="fig">
+        <div class="map-head">
+          <h2>客户旅程全景图</h2>
+          <span class="eyebrow" id="map-cap"></span>
         </div>
-        <div class="funnel" id="funnel"></div>
-        <div class="funnel-hint">点击任一步骤，右侧查看该步骤当前停留用户的大区分布。</div>
+        <svg class="map-svg" id="map" viewBox="0 0 980 600" role="img" aria-label="客户旅程地图：七个站点与当前停留人数"></svg>
+        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数；<span style="color:var(--accent)">红色站点</span>为当前最大摩擦点。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
       </div>
 
-      <div class="card">
-        <div class="drill-head">
-          <div>
-            <h2 id="drill-title">当前停留 · 按大区</h2>
-            <div class="cap" id="drill-cap"></div>
-          </div>
+      <div class="panel">
+        <div class="eyebrow"><span class="no">02</span> · CATALOG AT A GLANCE</div>
+        <div class="stats">
+          <div class="sbox"><div class="v" id="kpi-in">–</div><div class="l">期间进入用户<br>（申请发送）<span id="kpi-in-delta"></span></div></div>
+          <div class="sbox"><div class="v" id="kpi-done">–</div><div class="l">期间合同激活<br>（完成放款）<span id="kpi-done-delta"></span></div></div>
+          <div class="sbox"><div class="v" id="kpi-conv">–</div><div class="l">端到端转化率<br>激活 ÷ 发送</div></div>
+          <div class="sbox"><div class="v acc" id="kpi-stuck">–</div><div class="l">当前在途停留<br>快照 · 不随日期变化</div></div>
         </div>
-        <div class="drill-total" id="drill-total"></div>
-        <div class="regions" id="drill-regions"></div>
+        <div class="note" id="note"></div>
+        <div class="drill">
+          <div class="eyebrow"><span class="no">03</span> · BY REGION</div>
+          <h3 id="drill-title">–</h3>
+          <div class="dcap" id="drill-cap"></div>
+          <div class="rrows" id="drill-regions"></div>
+        </div>
+        <div class="figcap" style="margin-top:auto"><b>图 2</b> · 每一圆点 ≈ <span id="dot-unit">–</span> 名停留客户；<span style="color:var(--accent)">红点行</span>为该站停留最多的大区。</div>
       </div>
     </div>
 
-    <div class="card below">
-      <div class="drill-head">
-        <div>
-          <h2>每日进入用户趋势</h2>
-          <div class="cap" id="trend-cap"></div>
-        </div>
+    <div class="fig below">
+      <div class="map-head">
+        <h2>每日进入用户趋势</h2>
+        <span class="eyebrow"><span class="no">04</span> · DAILY INFLOW</span>
       </div>
-      <svg class="trend-svg" id="trend" viewBox="0 0 920 240" role="img" aria-label="每日进入用户趋势折线图"></svg>
+      <svg class="trend-svg" id="trend" viewBox="0 0 980 240" role="img" aria-label="每日进入用户趋势"></svg>
+      <div class="figcap"><b>图 3</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
     </div>
 
-    <div class="card below">
-      <div class="drill-head">
-        <h2>旅程明细（表格视图）</h2>
+    <div class="fig below">
+      <div class="tbl-head">
+        <h2>旅程明细</h2>
         <button class="tbl-toggle" id="tbl-toggle" aria-expanded="false">展开表格</button>
       </div>
       <div class="tbl-wrap" id="tbl-wrap" hidden></div>
+      <div class="figcap"><b>图 4</b> · 各站点进入 / 转化 / 停留明细，含分大区停留列。</div>
     </div>
 
     <footer>
-      <div><strong>口径说明</strong>：「期间进入」= 所选日期范围内首次到达该步骤的用户数；「当前停留」= 截至最近刷新时点仍停留在该步骤、未流转到下一步的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。</div>
-      <div>本页为产品看板原型，数据由前端按日期种子模拟生成（每天刷新出新数值）；接入生产时替换 <code>loadData()</code> 为数仓/API 查询即可，页面结构与交互不变。</div>
+      口径说明 —— 「期间进入」= 所选日期范围内首次到达该站的用户数；「当前停留」= 截至最近刷新时点仍停留在该站、未流转到下一站的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。
+      本页为产品看板原型，数据由前端按日期种子模拟生成（每天刷新出新数值）；接入生产时替换 <code>loadData()</code> 为数仓 / API 查询即可，页面结构与交互不变。
     </footer>
 
   </div>
@@ -318,7 +274,7 @@
   var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
   var REGIONS = ['华东', '华南', '华北', '华中', '西南', '西北'];
   var REGION_W = [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];      // 各大区体量权重
-  var CONV = [0.74, 0.62, 0.55, 0.78, 0.90, 0.95];        // 相邻步骤基准转化率（还款卡验证为主要摩擦点）
+  var CONV = [0.74, 0.62, 0.55, 0.78, 0.90, 0.95];        // 相邻站点基准转化率（还款卡验证为主要摩擦点）
   var BASE_DAILY = 620;                                    // 全国日均申请发送基数
 
   // ── 模拟数据（按日期种子，每天刷新出新数值；生产环境替换为 API） ──
@@ -341,7 +297,6 @@
   }
   function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d; }
 
-  // 某日某大区各步骤进入人数
   function dayRegionEntered(dateStr, ri) {
     var r = rng(hashSeed(dateStr + '|' + REGIONS[ri]));
     var dow = new Date(dateStr + 'T00:00:00').getDay();
@@ -354,7 +309,7 @@
     }
     return out;
   }
-  // 当前停留快照：近3日进入未流转的滞留部分（终点步骤不计停留）
+  // 当前停留快照：近3日进入未流转的滞留部分（终点站不计停留）
   function stuckSnapshot(ri) {
     var today = dstr(daysAgo(0));
     var r = rng(hashSeed('stuck|' + today + '|' + REGIONS[ri]));
@@ -369,7 +324,6 @@
     return acc.map(Math.round);
   }
 
-  // 汇总：日期范围 × 大区 → { entered[7], series:[{date,val}] }
   function loadData(rangeDays, regionIdx) {
     var entered = STAGES.map(function () { return 0; });
     var series = [];
@@ -383,15 +337,20 @@
         daySent += e[0];
         if (d <= rangeDays) for (var s = 0; s < STAGES.length; s++) entered[s] += e[s];
       }
-      series.push({ date: ds, val: daySent, inRange: d <= rangeDays });
+      series.push({ date: ds, val: daySent });
     }
     return { entered: entered, series: series };
   }
-  function stuckByRegion() { return REGIONS.map(function (_, ri) { return stuckSnapshot(ri); }); }
 
   // ── 状态 ──────────────────────────────────────────────
-  var state = { range: 7, region: -1, stage: 3 };   // 默认选中「还款卡验证」
-  var STUCK = stuckByRegion();                       // [region][stage]
+  var STUCK = REGIONS.map(function (_, ri) { return stuckSnapshot(ri); });   // [region][stage]
+  // 默认下钻站点 = 当前停留最多的站（最大摩擦点）
+  var initStage = 0, initMax = -1;
+  for (var si = 0; si < STAGES.length - 1; si++) {
+    var st = STUCK.reduce(function (t, row) { return t + row[si]; }, 0);
+    if (st > initMax) { initMax = st; initStage = si; }
+  }
+  var state = { range: 7, region: -1, stage: initStage };
 
   function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
   function pct(n) { return (n * 100).toFixed(1) + '%'; }
@@ -405,6 +364,7 @@
     }
     return t;
   }
+  function cssv(name) { return getComputedStyle(document.querySelector('.atlas')).getPropertyValue(name).trim(); }
 
   // ── 提示框 ────────────────────────────────────────────
   var tip = document.getElementById('tip');
@@ -425,12 +385,179 @@
     tip.style.left = px + 'px'; tip.style.top = py + 'px';
   }
   function tipHide() { tip.style.display = 'none'; }
-  function seriesColor(name) {
-    return getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(name).trim();
+
+  // ── SVG 工具 ──────────────────────────────────────────
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, attrs, cls) {
+    var e = document.createElementNS(NS, n);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (cls) e.setAttribute('class', cls);
+    return e;
+  }
+  function txt(x, y, str, cls, anchor, extra) {
+    var t = el('text', { x: x, y: y, 'text-anchor': anchor || 'start' }, cls);
+    if (extra) for (var k in extra) t.setAttribute(k, extra[k]);
+    t.textContent = str;
+    return t;
   }
 
-  // ── KPI ───────────────────────────────────────────────
-  function renderKpis(data, prev) {
+  // ── 旅程地图 ──────────────────────────────────────────
+  // 站点坐标（蜿蜒路线）与注释框位置
+  var PTS = [
+    { x: 105, y: 165 }, { x: 340, y: 110 }, { x: 585, y: 155 }, { x: 830, y: 250 },
+    { x: 610, y: 385 }, { x: 350, y: 430 }, { x: 120, y: 505 }
+  ];
+  var BOX = [   // 注释框左上角 + 引线接点方位
+    { x: 30,  y: 40 },  { x: 275, y: 22 },  { x: 520, y: 45 },  { x: 745, y: 118 },
+    { x: 668, y: 468 }, { x: 300, y: 512 }, { x: 30,  y: 385 }
+  ];
+  var BW = 168, BH = 48;
+
+  function catmull(pts) {
+    // Catmull-Rom → 每段三次贝塞尔控制点
+    var segs = [];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      segs.push({
+        p1: p1, p2: p2,
+        c1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
+        c2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 }
+      });
+    }
+    return segs;
+  }
+  function segPath(s) {
+    return 'M' + s.p1.x + ' ' + s.p1.y +
+      ' C' + s.c1.x.toFixed(1) + ' ' + s.c1.y.toFixed(1) + ', ' + s.c2.x.toFixed(1) + ' ' + s.c2.y.toFixed(1) +
+      ', ' + s.p2.x + ' ' + s.p2.y;
+  }
+  function bezMid(s) {   // t=0.5
+    function m(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+    var ab = m(s.p1, s.c1), bc = m(s.c1, s.c2), cd = m(s.c2, s.p2);
+    return m(m(ab, bc), m(bc, cd));
+  }
+
+  function renderMap(data) {
+    document.getElementById('map-cap').textContent = (rangeName() + ' · ' + regionName()).toUpperCase();
+    var svg = document.getElementById('map'); svg.textContent = '';
+
+    // 纸面点阵网格
+    var defs = el('defs', {});
+    var pat = el('pattern', { id: 'dotgrid', width: 26, height: 26, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(el('circle', { cx: 1, cy: 1, r: 0.9, fill: 'rgba(36,39,46,0.055)' }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    svg.appendChild(el('rect', { x: 0, y: 0, width: 980, height: 600, fill: 'url(#dotgrid)' }));
+
+    // 罗盘（装饰）
+    var comp = el('g', {});
+    comp.appendChild(el('circle', { cx: 930, cy: 44, r: 16, fill: 'none', stroke: cssv('--hairline'), 'stroke-width': 1 }));
+    comp.appendChild(el('path', { d: 'M930 32 L934 48 L930 44 L926 48 Z', fill: cssv('--ink-2') }));
+    comp.appendChild(txt(930, 76, 'N', 'tag', 'middle'));
+    svg.appendChild(comp);
+
+    var segs = catmull(PTS);
+    var maxIn = data.entered[0] || 1;
+
+    // 通道（宽度 ∝ 进入下一站人数）
+    segs.forEach(function (s, i) {
+      var w = 4 + 22 * (data.entered[i + 1] / maxIn);
+      svg.appendChild(el('path', { d: segPath(s), 'stroke-width': w.toFixed(1) }, 'ribbon'));
+    });
+    // 虚线路线（地图感）
+    segs.forEach(function (s) { svg.appendChild(el('path', { d: segPath(s) }, 'route')); });
+
+    // 段中转化率标签
+    segs.forEach(function (s, i) {
+      var m = bezMid(s);
+      var label = '→ ' + (data.entered[i] ? pct(data.entered[i + 1] / data.entered[i]) : '–');
+      var tw = label.length * 6.6 + 10;
+      svg.appendChild(el('rect', { x: m.x - tw / 2, y: m.y - 20, width: tw, height: 15, rx: 2 }, 'conv-bg'));
+      svg.appendChild(txt(m.x, m.y - 8.5, label, 'conv-l', 'middle'));
+    });
+
+    // 入口 / 终点 标记
+    svg.appendChild(txt(PTS[0].x - 62, PTS[0].y - 40, '入口 · ENTRY', 'tag'));
+    svg.appendChild(txt(PTS[6].x + 40, PTS[6].y + 46, '终点 · ACTIVATED', 'tag'));
+
+    // 最大摩擦点（停留最多的站）
+    var maxStuckStage = 0, maxStuckVal = -1;
+    for (var s2 = 0; s2 < STAGES.length - 1; s2++) {
+      var v = stuckOf(s2);
+      if (v > maxStuckVal) { maxStuckVal = v; maxStuckStage = s2; }
+    }
+
+    // 注释框 + 引线 + 站点
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var p = PTS[s], b = BOX[s];
+      var stuck = isLast ? null : stuckOf(s);
+      var isFriction = !isLast && s === maxStuckStage;
+      var selected = s === state.stage;
+      var accent = cssv('--accent'), blue = cssv('--blue');
+
+      var g = el('g', { tabindex: isLast ? -1 : 0, role: isLast ? null : 'button' }, 'st');
+      if (isLast) g.removeAttribute('role');
+
+      // 引线：框边中点 → 站点
+      var bx = b.x + BW / 2, by = b.y + (b.y < p.y ? BH : 0);
+      g.appendChild(el('path', { d: 'M' + bx + ' ' + by + ' L' + p.x + ' ' + (p.y + (b.y < p.y ? -1 : 1) * 6) }, 'leader'));
+
+      // 注释框
+      var box = el('rect', { x: b.x, y: b.y, width: BW, height: BH, rx: 2 }, 'abox');
+      if (selected) { box.style.stroke = cssv('--ink'); box.style.strokeWidth = '1.5'; }
+      g.appendChild(box);
+      var t1 = txt(b.x + 10, b.y + 16, '0' + (s + 1), 'abox-t1');
+      if (isFriction) t1.style.fill = accent;
+      g.appendChild(t1);
+      g.appendChild(txt(b.x + 34, b.y + 18, name, 'abox-t2'));
+      g.appendChild(txt(b.x + 10, b.y + 37, (isLast ? '期间激活 ' : '期间进入 ') + fmt(data.entered[s]), 'abox-t3'));
+
+      // 站点圆：面积 ∝ 停留（外加透明扩大命中区）
+      var r = isLast ? 15 : Math.min(32, 8 + Math.sqrt(stuck || 0) * 1.35);
+      g.appendChild(el('circle', { cx: p.x, cy: p.y, r: (r + 14).toFixed(1), fill: 'transparent' }));
+      var c = el('circle', { cx: p.x, cy: p.y, r: r.toFixed(1) }, 'station-c');
+      if (isFriction) c.style.stroke = accent;
+      if (selected) c.style.strokeWidth = '3.2';
+      g.appendChild(c);
+      if (isLast) {
+        g.appendChild(el('circle', { cx: p.x, cy: p.y, r: 9, fill: 'none', stroke: blue, 'stroke-width': 1.2 }));
+        g.appendChild(el('circle', { cx: p.x, cy: p.y, r: 3.4 }, 'station-core'));
+      } else {
+        var core = el('circle', { cx: p.x, cy: p.y, r: 3.4 }, 'station-core');
+        if (isFriction) core.style.fill = accent;
+        g.appendChild(core);
+      }
+
+      // 站点数字：当前停留（终点=期间激活）
+      var below = b.y < p.y;   // 框在上方 → 数字放下方
+      var ny = below ? p.y + r + 20 : p.y - r - 16;
+      var nv = txt(p.x, ny, isLast ? fmt(data.entered[6]) : fmt(stuck), 'nnum', 'middle');
+      if (isFriction) nv.style.fill = accent;
+      g.appendChild(nv);
+      g.appendChild(txt(p.x, ny + (below ? 13 : -13), isLast ? '期间激活' : '当前停留', 'ncap', 'middle'));
+
+      // 交互
+      if (!isLast) {
+        g.addEventListener('click', function () { state.stage = s; renderMap(loadData(state.range, state.region)); renderDrill(); });
+        g.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); state.stage = s; renderMap(loadData(state.range, state.region)); renderDrill(); }
+        });
+      }
+      g.addEventListener('pointermove', function (ev) {
+        var rows = [{ color: blue, value: fmt(data.entered[s]), label: rangeName() + (isLast ? '激活' : '进入') }];
+        if (!isLast) rows.push({ color: accent, value: fmt(stuck), label: '当前停留（快照）' });
+        if (s > 0) rows.push({ color: 'transparent', value: data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–', label: '上站转化' });
+        tipShow(ev.clientX, ev.clientY, '0' + (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
+      });
+      g.addEventListener('pointerleave', tipHide);
+      g.addEventListener('blur', tipHide);
+      svg.appendChild(g);
+    });
+  }
+
+  // ── 侧栏 ──────────────────────────────────────────────
+  function renderKpis(data, prevEntered) {
     var sent = data.entered[0], done = data.entered[6];
     document.getElementById('kpi-in').textContent = fmt(sent);
     document.getElementById('kpi-done').textContent = fmt(done);
@@ -439,137 +566,58 @@
     for (var s = 0; s < STAGES.length - 1; s++) totalStuck += stuckOf(s);
     document.getElementById('kpi-stuck').textContent = fmt(totalStuck);
 
-    [['kpi-in-delta', sent, prev.entered[0]], ['kpi-done-delta', done, prev.entered[6]]].forEach(function (it) {
-      var el = document.getElementById(it[0]); el.textContent = '';
+    [['kpi-in-delta', sent, prevEntered[0]], ['kpi-done-delta', done, prevEntered[6]]].forEach(function (it) {
+      var elx = document.getElementById(it[0]); elx.textContent = '';
       if (!it[2]) return;
       var d = (it[1] - it[2]) / it[2];
-      var sp = document.createElement('span');
-      sp.className = d >= 0 ? 'up' : 'down';
-      sp.textContent = (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
-      el.appendChild(sp);
-      el.appendChild(document.createTextNode(' vs 上一' + (state.range === 1 ? '日' : '周期')));
+      elx.textContent = ' · ' + (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '% vs 上一周期';
     });
 
-    // 迷你趋势：近12天进入
-    var svg = document.getElementById('kpi-spark'); svg.textContent = '';
-    var pts = data.series.slice(-12).map(function (p) { return p.val; });
-    var mx = Math.max.apply(null, pts) || 1, mn = Math.min.apply(null, pts);
-    var path = pts.map(function (v, i) {
-      var x = 4 + i * (112 / 11), y = 24 - (mx === mn ? 0.5 : (v - mn) / (mx - mn)) * 20;
-      return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
-    }).join(' ');
-    var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    p.setAttribute('d', path); p.setAttribute('fill', 'none');
-    p.setAttribute('stroke', 'var(--baseline)'); p.setAttribute('stroke-width', '1.5');
-    svg.appendChild(p);
-    var last = pts[pts.length - 1];
-    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    c.setAttribute('cx', String(4 + 11 * (112 / 11))); c.setAttribute('r', '3');
-    c.setAttribute('cy', String(24 - (mx === mn ? 0.5 : (last - mn) / (mx - mn)) * 20));
-    c.setAttribute('fill', 'var(--series-in)');
-    svg.appendChild(c);
+    // 摩擦点批注
+    var mx = 0, mv = -1;
+    for (var s3 = 0; s3 < STAGES.length - 1; s3++) { var v = stuckOf(s3); if (v > mv) { mv = v; mx = s3; } }
+    var note = document.getElementById('note'); note.textContent = '';
+    note.appendChild(document.createTextNode('当前最大摩擦点为「' + STAGES[mx] + '」—— '));
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.style.color = cssv('--accent');
+    nm.textContent = fmt(mv) + ' 人';
+    note.appendChild(nm);
+    note.appendChild(document.createTextNode('停留，占在途 ' + (totalStuck ? pct(mv / totalStuck) : '–') + '。点击地图站点可切换下钻。'));
   }
 
-  // ── 漏斗 ──────────────────────────────────────────────
-  function renderFunnel(data) {
-    document.getElementById('funnel-cap').textContent = rangeName() + ' · ' + regionName();
-    var root = document.getElementById('funnel'); root.textContent = '';
-    var max = data.entered[0] || 1;
-
-    STAGES.forEach(function (name, s) {
-      var isLast = s === STAGES.length - 1;
-      var stuck = isLast ? null : stuckOf(s);
-      var btn = document.createElement('button');
-      btn.className = 'stage';
-      btn.setAttribute('aria-pressed', String(s === state.stage));
-      if (isLast) { btn.disabled = false; }
-
-      var sn = document.createElement('span'); sn.className = 'sn';
-      var idx = document.createElement('span'); idx.className = 'idx'; idx.textContent = String(s + 1);
-      sn.appendChild(idx); sn.appendChild(document.createTextNode(name));
-      btn.appendChild(sn);
-
-      var bars = document.createElement('span'); bars.className = 'bars';
-      function brow(cls, val, maxVal) {
-        var row = document.createElement('span'); row.className = 'brow';
-        var bar = document.createElement('span'); bar.className = 'bar ' + cls;
-        bar.style.width = Math.max(0.5, val / maxVal * 100 * 0.72) + '%';
-        row.appendChild(bar);
-        var bv = document.createElement('span'); bv.className = 'bv'; bv.textContent = fmt(val);
-        row.appendChild(bv);
-        return row;
-      }
-      bars.appendChild(brow('in', data.entered[s], max));
-      if (!isLast) bars.appendChild(brow('stuck', stuck, max));
-      else {
-        var doneRow = document.createElement('span'); doneRow.className = 'brow';
-        var bv = document.createElement('span'); bv.className = 'bv'; bv.textContent = '旅程终点 · 无停留';
-        bv.style.marginLeft = '0';
-        doneRow.appendChild(bv);
-        bars.appendChild(doneRow);
-      }
-      btn.appendChild(bars);
-
-      var conv = document.createElement('span'); conv.className = 'conv';
-      if (s > 0) {
-        var cr = document.createElement('span'); cr.className = 'cr';
-        cr.textContent = data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–';
-        conv.appendChild(cr);
-        conv.appendChild(document.createElement('br'));
-        conv.appendChild(document.createTextNode('上步转化'));
-      }
-      btn.appendChild(conv);
-
-      btn.addEventListener('click', function () {
-        if (isLast) return;
-        state.stage = s;
-        renderAll(false);
-      });
-      btn.addEventListener('pointermove', function (ev) {
-        var rows = [{ color: seriesColor('--series-in'), value: fmt(data.entered[s]), label: rangeName() + '进入' }];
-        if (!isLast) rows.push({ color: seriesColor('--series-stuck'), value: fmt(stuck), label: '当前停留（快照）' });
-        tipShow(ev.clientX, ev.clientY, (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
-      });
-      btn.addEventListener('pointerleave', tipHide);
-      root.appendChild(btn);
-    });
-  }
-
-  // ── 下钻：按大区 ──────────────────────────────────────
   function renderDrill() {
     var s = state.stage;
-    document.getElementById('drill-title').textContent = '当前停留 · 按大区';
-    document.getElementById('drill-cap').textContent = '步骤 ' + (s + 1) + ' · ' + STAGES[s] + ' · 截至最近刷新';
+    document.getElementById('drill-title').textContent = '0' + (s + 1) + ' · ' + STAGES[s] + ' · 当前停留';
+    document.getElementById('drill-cap').textContent = '截至最近刷新 · ' + regionName();
     var rows = REGIONS.map(function (r, ri) { return { name: r, val: STUCK[ri][s], ri: ri }; })
       .filter(function (r) { return state.region === -1 || r.ri === state.region; })
       .sort(function (a, b) { return b.val - a.val; });
     var total = rows.reduce(function (t, r) { return t + r.val; }, 0);
-    var totalEl = document.getElementById('drill-total'); totalEl.textContent = '';
-    totalEl.appendChild(document.createTextNode(fmt(total)));
-    var sm = document.createElement('small'); sm.textContent = '名用户停留在「' + STAGES[s] + '」';
-    totalEl.appendChild(sm);
+    var max = rows.length ? rows[0].val : 1;
+    var unit = Math.max(1, Math.ceil(max / 24));
+    document.getElementById('dot-unit').textContent = unit;
 
     var root = document.getElementById('drill-regions'); root.textContent = '';
-    var max = rows.length ? rows[0].val : 1;
-    rows.forEach(function (r) {
+    rows.forEach(function (r, i) {
       var row = document.createElement('div'); row.className = 'rrow'; row.tabIndex = 0;
       var rn = document.createElement('span'); rn.className = 'rn'; rn.textContent = r.name; row.appendChild(rn);
-      var rb = document.createElement('span'); rb.className = 'rb';
-      var bar = document.createElement('span'); bar.className = 'bar';
-      bar.style.width = Math.max(1, r.val / (max || 1) * 100 * 0.8) + '%';
-      rb.appendChild(bar);
-      var bv = document.createElement('span'); bv.className = 'bv';
-      bv.textContent = fmt(r.val) + (total ? '（' + pct(r.val / total) + '）' : '');
-      rb.appendChild(bv);
-      row.appendChild(rb);
+      var dots = document.createElement('span'); dots.className = 'dots';
+      var n = Math.max(r.val > 0 ? 1 : 0, Math.round(r.val / unit));
+      for (var k = 0; k < n; k++) {
+        var d = document.createElement('i'); if (i === 0) d.className = 'acc';
+        dots.appendChild(d);
+      }
+      row.appendChild(dots);
+      var rv = document.createElement('span'); rv.className = 'rv';
+      var b = document.createElement('b'); b.textContent = fmt(r.val); rv.appendChild(b);
+      rv.appendChild(document.createTextNode(total ? ' · ' + pct(r.val / total) : ''));
+      row.appendChild(rv);
       function show(ev) {
         var rect = row.getBoundingClientRect();
-        var x = ev && ev.clientX ? ev.clientX : rect.left + rect.width / 2;
-        var y = ev && ev.clientY ? ev.clientY : rect.top;
-        tipShow(x, y, r.name + ' · ' + STAGES[s], [
-          { color: seriesColor('--series-in'), value: fmt(r.val), label: '当前停留用户' },
-          { color: 'transparent', value: total ? pct(r.val / total) : '–', label: '占该步骤停留' }
-        ]);
+        tipShow(ev && ev.clientX ? ev.clientX : rect.left + rect.width / 2,
+                ev && ev.clientY ? ev.clientY : rect.top,
+                r.name + ' · ' + STAGES[s],
+                [{ color: cssv('--blue'), value: fmt(r.val), label: '当前停留用户' },
+                 { color: 'transparent', value: total ? pct(r.val / total) : '–', label: '占该站停留' }]);
       }
       row.addEventListener('pointermove', show);
       row.addEventListener('focus', show);
@@ -579,50 +627,47 @@
     });
   }
 
-  // ── 趋势图 ────────────────────────────────────────────
+  // ── 趋势图（点阵面积） ────────────────────────────────
   function renderTrend(data) {
-    document.getElementById('trend-cap').textContent = '近14天 · 申请发送步骤进入人数 · ' + regionName();
+    document.getElementById('trend-cap').textContent = regionName() + '口径';
     var svg = document.getElementById('trend'); svg.textContent = '';
-    var W = 920, H = 240, L = 52, R = 16, T = 16, B = 34;
+    var W = 980, H = 240, L = 56, R = 20, T = 18, B = 34;
     var pts = data.series.slice(-14);
     var maxV = Math.max.apply(null, pts.map(function (p) { return p.val; })) || 1;
     var step = Math.pow(10, Math.floor(Math.log10(maxV)));
     var top = Math.ceil(maxV / (step / 2)) * (step / 2);
     function X(i) { return L + i * (W - L - R) / (pts.length - 1); }
     function Y(v) { return T + (1 - v / top) * (H - T - B); }
-    function el(n, attrs) {
-      var e = document.createElementNS('http://www.w3.org/2000/svg', n);
-      for (var k in attrs) e.setAttribute(k, attrs[k]);
-      return e;
-    }
-    // 网格 + 纵轴刻度
+
+    var defs = el('defs', {});
+    var pat = el('pattern', { id: 'stipple', width: 7, height: 7, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(el('circle', { cx: 1.5, cy: 1.5, r: 1.15, fill: cssv('--blue'), opacity: 0.4 }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+
     for (var g = 0; g <= 4; g++) {
       var v = top * g / 4, y = Y(v);
-      svg.appendChild(el(g === 0 ? 'line' : 'line', { x1: L, x2: W - R, y1: y, y2: y, 'class': g === 0 ? 'bl' : 'gl' }));
-      var t = el('text', { x: L - 8, y: y + 4, 'text-anchor': 'end' });
-      t.textContent = Math.round(v).toLocaleString('zh-CN');
-      svg.appendChild(t);
+      svg.appendChild(el('line', { x1: L, x2: W - R, y1: y, y2: y }, g === 0 ? 'bl' : 'gl'));
+      svg.appendChild(txt(L - 8, y + 3.5, Math.round(v).toLocaleString('zh-CN'), null, 'end'));
     }
-    // 横轴日期（隔一天标一个）
     pts.forEach(function (p, i) {
       if (i % 2 !== (pts.length - 1) % 2) return;
-      var t = el('text', { x: X(i), y: H - B + 20, 'text-anchor': 'middle' });
-      t.textContent = p.date.slice(5).replace('-', '/');
-      svg.appendChild(t);
+      svg.appendChild(txt(X(i), H - B + 18, p.date.slice(5).replace('-', '/'), null, 'middle'));
     });
-    // 面积淡washes + 折线
+
     var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.val).toFixed(1); }).join(' ');
-    svg.appendChild(el('path', { d: line + ' L' + X(pts.length - 1).toFixed(1) + ' ' + Y(0) + ' L' + L + ' ' + Y(0) + ' Z', 'class': 'wash' }));
-    svg.appendChild(el('path', { d: line, 'class': 'ser' }));
-    // 末点标记 + 数值
-    var lastI = pts.length - 1;
-    svg.appendChild(el('circle', { cx: X(lastI), cy: Y(pts[lastI].val), r: 4, 'class': 'dot' }));
-    var endT = el('text', { x: X(lastI) - 6, y: Y(pts[lastI].val) - 10, 'text-anchor': 'end', style: 'fill: var(--text-secondary); font-weight: 600;' });
-    endT.textContent = fmt(pts[lastI].val);
-    svg.appendChild(endT);
-    // 十字线 + 悬停
-    var xh = el('line', { y1: T, y2: H - B, 'class': 'xh', visibility: 'hidden' });
-    var hd = el('circle', { r: 4, 'class': 'dot', visibility: 'hidden' });
+    svg.appendChild(el('path', { d: line + ' L' + X(pts.length - 1).toFixed(1) + ' ' + Y(0) + ' L' + L + ' ' + Y(0) + ' Z', fill: 'url(#stipple)' }));
+    svg.appendChild(el('path', { d: line }, 'ser'));
+
+    var li = pts.length - 1;
+    svg.appendChild(el('circle', { cx: X(li), cy: Y(pts[li].val), r: 4 }, 'dot'));
+    var lbl = fmt(pts[li].val);
+    var bw = lbl.length * 7.5 + 16;
+    svg.appendChild(el('rect', { x: X(li) - bw - 10, y: Y(pts[li].val) - 30, width: bw, height: 20, rx: 2 }, 'endbox'));
+    svg.appendChild(txt(X(li) - 10 - bw / 2, Y(pts[li].val) - 16, lbl, 'endtxt', 'middle'));
+
+    var xh = el('line', { y1: T, y2: H - B, visibility: 'hidden' }, 'xh');
+    var hd = el('circle', { r: 4, visibility: 'hidden' }, 'dot');
     svg.appendChild(xh); svg.appendChild(hd);
     var hit = el('rect', { x: L, y: T, width: W - L - R, height: H - T - B, fill: 'transparent' });
     hit.addEventListener('pointermove', function (ev) {
@@ -632,7 +677,7 @@
       xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('visibility', 'visible');
       hd.setAttribute('cx', X(i)); hd.setAttribute('cy', Y(pts[i].val)); hd.setAttribute('visibility', 'visible');
       tipShow(ev.clientX, ev.clientY, pts[i].date + ' · ' + regionName(),
-        [{ color: seriesColor('--series-in'), value: fmt(pts[i].val), label: '进入用户（申请发送）' }]);
+        [{ color: cssv('--blue'), value: fmt(pts[i].val), label: '进入用户（申请发送）' }]);
     });
     hit.addEventListener('pointerleave', function () {
       xh.setAttribute('visibility', 'hidden'); hd.setAttribute('visibility', 'hidden'); tipHide();
@@ -640,12 +685,12 @@
     svg.appendChild(hit);
   }
 
-  // ── 表格视图 ──────────────────────────────────────────
+  // ── 表格 ──────────────────────────────────────────────
   function renderTable(data) {
     var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
     var tb = document.createElement('table');
     var thead = document.createElement('thead'); var hr = document.createElement('tr');
-    ['旅程步骤', rangeName() + '进入', '上步转化', '当前停留（快照）'].concat(
+    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留'].concat(
       REGIONS.map(function (r) { return '停留·' + r; })
     ).forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
     thead.appendChild(hr); tb.appendChild(thead);
@@ -653,13 +698,13 @@
     STAGES.forEach(function (name, s) {
       var isLast = s === STAGES.length - 1;
       var tr = document.createElement('tr');
-      var cells = [
+      [
         (s + 1) + '. ' + name,
         fmt(data.entered[s]),
         s === 0 ? '–' : (data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–'),
         isLast ? '–' : fmt(stuckOf(s))
-      ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }));
-      cells.forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
+      ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }))
+      .forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
       tbody.appendChild(tr);
     });
     tb.appendChild(tbody);
@@ -667,24 +712,22 @@
   }
 
   // ── 汇总渲染 ──────────────────────────────────────────
-  function renderAll(reload) {
+  function renderAll() {
     var data = loadData(state.range, state.region);
-    if (reload !== false) {
-      var prevEntered = STAGES.map(function () { return 0; });
-      for (var d = state.range * 2; d > state.range; d--) {
-        var ds = dstr(daysAgo(d));
-        for (var ri = 0; ri < REGIONS.length; ri++) {
-          if (state.region !== -1 && ri !== state.region) continue;
-          var e = dayRegionEntered(ds, ri);
-          for (var s = 0; s < STAGES.length; s++) prevEntered[s] += e[s];
-        }
+    var prevEntered = STAGES.map(function () { return 0; });
+    for (var d = state.range * 2; d > state.range; d--) {
+      var ds = dstr(daysAgo(d));
+      for (var ri = 0; ri < REGIONS.length; ri++) {
+        if (state.region !== -1 && ri !== state.region) continue;
+        var e = dayRegionEntered(ds, ri);
+        for (var s = 0; s < STAGES.length; s++) prevEntered[s] += e[s];
       }
-      renderKpis(data, { entered: prevEntered });
-      renderTrend(data);
-      renderTable(data);
     }
-    renderFunnel(data);
+    renderMap(data);
+    renderKpis(data, prevEntered);
     renderDrill();
+    renderTrend(data);
+    renderTable(data);
   }
 
   // ── 控件 ──────────────────────────────────────────────
@@ -694,14 +737,14 @@
       document.querySelectorAll('#range-seg button').forEach(function (x) {
         x.setAttribute('aria-pressed', String(x === b));
       });
-      renderAll(true);
+      renderAll();
     });
   });
   var sel = document.getElementById('region-sel');
   ['全部大区'].concat(REGIONS).forEach(function (r, i) {
     var o = document.createElement('option'); o.value = String(i - 1); o.textContent = r; sel.appendChild(o);
   });
-  sel.addEventListener('change', function () { state.region = Number(sel.value); renderAll(true); });
+  sel.addEventListener('change', function () { state.region = Number(sel.value); renderAll(); });
   document.getElementById('tbl-toggle').addEventListener('click', function () {
     var w = document.getElementById('tbl-wrap');
     var open = w.hidden;
@@ -710,8 +753,8 @@
     this.textContent = open ? '收起表格' : '展开表格';
   });
 
-  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + '（T+1）';
-  renderAll(true);
+  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + ' (T+1)';
+  renderAll();
 })();
 </script>
 </body>
