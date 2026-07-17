@@ -20,6 +20,7 @@
     --blue: #38699f;         /* 旅程主色（石板蓝） */
     --blue-wash: rgba(56,105,159,0.22);
     --accent: #b5502f;       /* 砖红 · 摩擦点/强调 */
+    --ai: #e0a000;           /* 琥珀金 · AI 助手维度 */
     --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
   }
@@ -116,6 +117,7 @@
   .panel .eyebrow { text-align: right; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
   .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
+  .sbox.ai-box { border-top: 2.5px solid var(--ai); }
   .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
   .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); margin-left: 2px; }
   .sbox .v.acc { color: var(--accent); }
@@ -231,7 +233,7 @@
           <span class="eyebrow" id="map-cap"></span>
         </div>
         <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="img" aria-label="客户旅程地图：七个站点与当前停留人数"></svg>
-        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数；<span style="color:var(--accent)">红笔圈注</span>为当前最大摩擦点。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
+        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数；<span style="color:var(--accent)">红色站点</span>为当前最大摩擦点；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
       </div>
 
       <div class="panel">
@@ -254,13 +256,21 @@
           <div class="eyebrow"><span class="no">04</span> · STATION INDEX</div>
           <div class="idx-rows" id="idx-rows"></div>
         </div>
+        <div class="ai">
+          <div class="eyebrow"><span class="no">05</span> · AI COPILOT</div>
+          <div class="stats" style="margin-top:10px">
+            <div class="sbox ai-box"><div class="v" id="ai-now">–</div><div class="l">当前 AI 协助中<br>占在途停留 <span id="ai-cov">–</span></div></div>
+            <div class="sbox ai-box"><div class="v" id="ai-moved">–</div><div class="l">期间 AI 协助推进<br>占站间流转 <span id="ai-share">–</span></div></div>
+          </div>
+          <div class="note" id="ai-note" style="margin-top:9px"></div>
+        </div>
       </div>
     </div>
 
     <div class="fig below">
       <div class="map-head">
         <h2>每日进入用户趋势</h2>
-        <span class="eyebrow"><span class="no">05</span> · DAILY INFLOW</span>
+        <span class="eyebrow"><span class="no">06</span> · DAILY INFLOW</span>
       </div>
       <svg class="trend-svg" id="trend" viewBox="0 0 980 240" role="img" aria-label="每日进入用户趋势"></svg>
       <div class="figcap"><b>图 3</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
@@ -363,6 +373,16 @@
 
   // ── 状态 ──────────────────────────────────────────────
   var STUCK = REGIONS.map(function (_, ri) { return stuckSnapshot(ri); });   // [region][stage]
+
+  // AI 助手协助快照：各站停留客户中正被 AI 主动跟进/协助的人数
+  var AI_COV = [0.32, 0.55, 0.48, 0.62, 0.5, 0.38];   // 各站基准覆盖率（摩擦越大投入越高）
+  var AIH = REGIONS.map(function (_, ri) {
+    var r = rng(hashSeed('ai|' + dstr(daysAgo(0)) + '|' + REGIONS[ri]));
+    return STUCK[ri].map(function (v, s) {
+      if (s >= STAGES.length - 1) return 0;
+      return Math.round(v * Math.min(0.9, AI_COV[s] * (0.85 + r() * 0.3)));
+    });
+  });
   // 默认下钻站点 = 当前停留最多的站（最大摩擦点）
   var initStage = 0, initMax = -1;
   for (var si = 0; si < STAGES.length - 1; si++) {
@@ -380,6 +400,14 @@
     for (var ri = 0; ri < REGIONS.length; ri++) {
       if (state.region !== -1 && ri !== state.region) continue;
       t += STUCK[ri][stage];
+    }
+    return t;
+  }
+  function aiOf(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += AIH[ri][stage];
     }
     return t;
   }
@@ -432,14 +460,9 @@
     { x: 320, y: 1105, st: 6 }
   ];
   var SP = ROUTE.filter(function (p) { return p.st !== undefined; });   // 站点路点
-  var BOX = [   // 注释框左上角（nx/ny 覆盖停留数字位；fx/fy/fa 为手绘摩擦圈注的批注位）
-    { x: 30,  y: 30,  fx: 262, fy: 218, fa: 'start' },
-    { x: 600, y: 38,  fx: 582, fy: 236, fa: 'end' },
-    { x: 776, y: 470, fx: 538, fy: 352, fa: 'end' },
-    { x: 30,  y: 450, fx: 295, fy: 552, fa: 'start' },
-    { x: 255, y: 906, fx: 458, fy: 736, fa: 'start' },
-    { x: 790, y: 1088, nx: 896, ny: 990, fx: 700, fy: 1002, fa: 'end' },
-    { x: 95, y: 985 }
+  var BOX = [   // 注释框左上角（nx/ny 可覆盖停留数字位置）
+    { x: 30,  y: 30 },  { x: 600, y: 38 },  { x: 776, y: 470 }, { x: 30,  y: 450 },
+    { x: 255, y: 906 }, { x: 790, y: 1088, nx: 896, ny: 990 }, { x: 95, y: 985 }
   ];
   var BW = 168, BH = 48;
 
@@ -466,18 +489,14 @@
     var ab = m(s.p1, s.c1), bc = m(s.c1, s.c2), cd = m(s.c2, s.p2);
     return m(m(ab, bc), m(bc, cd));
   }
-  // 手绘风圈注：带抖动的双圈椭圆（按日期种子，形状每天微变但当日稳定）
-  function sketchEllipse(cx, cy, R, seedStr) {
-    var r = rng(hashSeed(seedStr));
-    var rot = -0.16 + (r() - 0.5) * 0.1, cosR = Math.cos(rot), sinR = Math.sin(rot);
-    var pts = [];
-    var total = Math.PI * 2 * 1.86, step = Math.PI / 14;
-    for (var a = 0; a <= total; a += step) {
-      var jit = 1 + (r() - 0.5) * 0.09;
-      var ex = Math.cos(a) * R * 1.14 * jit, ey = Math.sin(a) * R * 0.93 * jit;
-      pts.push({ x: cx + ex * cosR - ey * sinR, y: cy + ex * sinR + ey * cosR });
-    }
-    return pts.map(function (p, i) { return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+  // 圆弧路径：自 12 点方向顺时针占 frac 圈
+  function arcPath(cx, cy, R, frac) {
+    var a0 = -Math.PI / 2, a1 = a0 + Math.PI * 2 * frac;
+    var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+    var x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+    return 'M' + x0.toFixed(1) + ' ' + y0.toFixed(1) +
+      ' A' + R.toFixed(1) + ' ' + R.toFixed(1) + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' +
+      x1.toFixed(1) + ' ' + y1.toFixed(1);
   }
 
   function renderMap(data) {
@@ -568,39 +587,18 @@
       var r = isLast ? 15 : Math.min(32, 8 + Math.sqrt(stuck || 0) * 1.35);
       g.appendChild(el('circle', { cx: p.x, cy: p.y, r: (r + 14).toFixed(1), fill: 'transparent' }));
       var c = el('circle', { cx: p.x, cy: p.y, r: r.toFixed(1) }, 'station-c');
+      if (isFriction) c.style.stroke = accent;
       if (selected) c.style.strokeWidth = '3.2';
       g.appendChild(c);
 
-      // 手绘红笔圈注：最大摩擦点
-      if (isFriction) {
-        var R = r + 13;
-        g.appendChild(el('path', {
-          d: sketchEllipse(p.x, p.y, R, 'sketch|' + dstr(daysAgo(0)) + '|' + s),
-          fill: 'none', stroke: accent, 'stroke-width': 1.8,
-          'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.9
-        }));
-        if (b.fx !== undefined) {
-          var lt = txt(b.fx, b.fy, '最大摩擦点', 't-serif', b.fa);
-          lt.style.fill = accent; lt.style.fontStyle = 'italic';
-          lt.style.fontSize = '14px'; lt.style.fontWeight = '700';
-          g.appendChild(lt);
-          // 弯曲的手绘箭头：批注 → 圈注边缘
-          var sx = b.fx + (b.fa === 'start' ? -10 : 10), sy = b.fy - 5;
-          var dx = p.x - sx, dy = p.y - sy, dist = Math.hypot(dx, dy) || 1;
-          var ex2 = p.x - dx / dist * (R + 8), ey2 = p.y - dy / dist * (R + 8);
-          var qx = (sx + ex2) / 2 - dy / dist * 16, qy = (sy + ey2) / 2 + dx / dist * 16;
+      // AI 助手协助弧：外圈琥珀色弧长 = 该站停留客户中正被 AI 协助的占比
+      if (!isLast && stuck > 0) {
+        var aiN = aiOf(s), frac = Math.min(0.98, aiN / stuck);
+        if (frac > 0.02) {
           g.appendChild(el('path', {
-            d: 'M' + sx + ' ' + sy + ' Q' + qx.toFixed(1) + ' ' + qy.toFixed(1) + ' ' + ex2.toFixed(1) + ' ' + ey2.toFixed(1),
-            fill: 'none', stroke: accent, 'stroke-width': 1.4, 'stroke-linecap': 'round'
+            d: arcPath(p.x, p.y, r + 6.5, frac),
+            fill: 'none', stroke: cssv('--ai'), 'stroke-width': 3, 'stroke-linecap': 'round'
           }));
-          var ang = Math.atan2(ey2 - qy, ex2 - qx);
-          [0.5, -0.5].forEach(function (o) {
-            var ax = ex2 - Math.cos(ang + o) * 9, ay = ey2 - Math.sin(ang + o) * 9;
-            g.appendChild(el('path', {
-              d: 'M' + ax.toFixed(1) + ' ' + ay.toFixed(1) + ' L' + ex2.toFixed(1) + ' ' + ey2.toFixed(1),
-              stroke: accent, 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round'
-            }));
-          });
         }
       }
       if (isLast) {
@@ -636,7 +634,11 @@
       }
       g.addEventListener('pointermove', function (ev) {
         var rows = [{ color: blue, value: fmt(data.entered[s]), label: rangeName() + (isLast ? '激活' : '进入') }];
-        if (!isLast) rows.push({ color: accent, value: fmt(stuck), label: '当前停留（快照）' });
+        if (!isLast) {
+          rows.push({ color: accent, value: fmt(stuck), label: '当前停留（快照）' });
+          var aiN = aiOf(s);
+          rows.push({ color: cssv('--ai'), value: fmt(aiN), label: 'AI 协助中' + (stuck ? ' · 占停留 ' + pct(aiN / stuck) : '') });
+        }
         if (s > 0) rows.push({ color: 'transparent', value: data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–', label: '上站转化' });
         tipShow(ev.clientX, ev.clientY, '0' + (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
       });
@@ -715,6 +717,32 @@
       row.addEventListener('blur', tipHide);
       root.appendChild(row);
     });
+  }
+
+  // ── AI 助手速览 ───────────────────────────────────────
+  function renderAiPanel(data) {
+    var totalStuck = 0, aiNow = 0;
+    for (var s = 0; s < STAGES.length - 1; s++) { totalStuck += stuckOf(s); aiNow += aiOf(s); }
+    document.getElementById('ai-now').textContent = fmt(aiNow);
+    document.getElementById('ai-cov').textContent = totalStuck ? pct(aiNow / totalStuck) : '–';
+
+    // 期间 AI 协助推进：经 AI 协助后流转到下一站的人次（按日期种子的归因比例）
+    var r = rng(hashSeed('aiRate|' + dstr(daysAgo(0))));
+    var aiMoved = 0, totalMoved = 0;
+    for (var s2 = 0; s2 < STAGES.length - 1; s2++) {
+      var moved = data.entered[s2 + 1];
+      totalMoved += moved;
+      aiMoved += Math.round(moved * (0.16 + r() * 0.12));
+    }
+    document.getElementById('ai-moved').textContent = fmt(aiMoved);
+    document.getElementById('ai-share').textContent = totalMoved ? pct(aiMoved / totalMoved) : '–';
+
+    var upA = 0.58 + r() * 0.1, upB = 0.36 + r() * 0.06;
+    var note = document.getElementById('ai-note'); note.textContent = '';
+    note.appendChild(document.createTextNode('AI 协助的停留客户次日推进率 '));
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = pct(upA);
+    note.appendChild(nm);
+    note.appendChild(document.createTextNode('，为未协助客户（' + pct(upB) + '）的 ' + (upA / upB).toFixed(1) + ' 倍。地图站点外圈琥珀色弧 = 该站 AI 协助占比。'));
   }
 
   // ── 站点索引 ──────────────────────────────────────────
@@ -802,7 +830,7 @@
     var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
     var tb = document.createElement('table');
     var thead = document.createElement('thead'); var hr = document.createElement('tr');
-    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留'].concat(
+    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留', 'AI协助中'].concat(
       REGIONS.map(function (r) { return '停留·' + r; })
     ).forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
     thead.appendChild(hr); tb.appendChild(thead);
@@ -814,7 +842,8 @@
         (s + 1) + '. ' + name,
         fmt(data.entered[s]),
         s === 0 ? '–' : (data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–'),
-        isLast ? '–' : fmt(stuckOf(s))
+        isLast ? '–' : fmt(stuckOf(s)),
+        isLast ? '–' : fmt(aiOf(s))
       ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }))
       .forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
       tbody.appendChild(tr);
@@ -839,6 +868,7 @@
     renderKpis(data, prevEntered);
     renderDrill();
     renderIndex(data);
+    renderAiPanel(data);
     renderTrend(data);
     renderTable(data);
   }
