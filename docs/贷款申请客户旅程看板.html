@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贷款申请客户旅程图鉴</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .atlas {
+    /* 编辑排版风 · 纸面科研插画 */
+    --page: #f3efe2;         /* 页面底（米灰） */
+    --paper: #fbf8ef;        /* 图面纸色 */
+    --panel: #e9eef0;        /* 侧栏冷灰蓝 */
+    --ink: #24272e;          /* 主墨色 */
+    --ink-2: #565a63;        /* 次级墨 */
+    --muted: #8b8574;        /* 弱化（暖灰） */
+    --hairline: #d9d2bf;     /* 细线 */
+    --blue: #38699f;         /* 旅程主色（石板蓝） */
+    --blue-wash: rgba(56,105,159,0.22);
+    --accent: #b5502f;       /* 砖红 · 摩擦点/强调 */
+    --ai: #e0a000;           /* 琥珀金 · AI 助手维度 */
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  }
+
+  .atlas {
+    font-family: var(--serif);
+    background: var(--page);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 30px 22px 56px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    color: var(--ink-2); text-transform: uppercase;
+  }
+  .eyebrow .no { color: var(--accent); }
+
+  header .eyebrow { margin-bottom: 10px; }
+  header h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  header .rule { border: none; border-top: 1.5px solid var(--ink); margin: 14px 0 10px; }
+  header .sub {
+    display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+  }
+
+  /* ── 筛选行 ─────────────────────── */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 22px 0 18px; }
+  .filters .flabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--muted); }
+  .seg { display: inline-flex; gap: 6px; }
+  .seg button, .tbl-toggle {
+    appearance: none; cursor: pointer; background: var(--paper);
+    border: 1px solid var(--hairline); border-radius: 2px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    padding: 6px 13px;
+  }
+  .seg button:hover, .tbl-toggle:hover { border-color: var(--ink-2); }
+  .seg button[aria-pressed="true"] {
+    border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff;
+  }
+  .filters select {
+    font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 2px;
+    padding: 6px 9px; cursor: pointer;
+  }
+
+  /* ── 图面卡片 ───────────────────── */
+  .fig {
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 20px 22px 16px;
+  }
+  .figcap {
+    font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--ink-2);
+    margin-top: 10px; line-height: 1.6;
+  }
+  .figcap b { font-style: normal; }
+
+  .main { display: grid; grid-template-columns: 1fr 348px; gap: 14px; align-items: start; }
+  .below { margin-top: 14px; }
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+  /* ── 旅程地图 ───────────────────── */
+  .map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .map-head h2 { font-size: 17px; }
+  .map-svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+  .map-svg text { font-family: var(--mono); }
+  .map-svg .t-serif { font-family: var(--serif); }
+  .map-svg .ribbon { stroke: var(--blue-wash); fill: none; stroke-linecap: round; }
+  .map-svg .route { stroke: var(--blue); fill: none; stroke-width: 1.6; stroke-dasharray: 1 7; stroke-linecap: round; }
+  .map-svg .station-c { fill: var(--paper); stroke: var(--blue); stroke-width: 2; }
+  .map-svg .station-core { fill: var(--blue); }
+  .map-svg .st { cursor: pointer; }
+  .map-svg .st:hover .station-c { stroke-width: 3; }
+  .map-svg .st:focus { outline: none; }
+  .map-svg .st:focus .station-c { stroke-width: 3; }
+  .map-svg .st:focus-visible .station-c { stroke-width: 4; }
+  .map-svg .abox { fill: #fff; stroke: var(--hairline); }
+  .map-svg .abox-t1 { font-size: 10px; letter-spacing: 0.14em; fill: var(--ink-2); }
+  .map-svg .abox-t2 { font-family: var(--serif); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .map-svg .abox-t3 { font-size: 10.5px; fill: var(--ink-2); }
+  .map-svg .leader { stroke: var(--ink-2); stroke-width: 0.8; fill: none; }
+  .map-svg .conv-l { font-size: 11px; fill: var(--ink-2); }
+  .map-svg .conv-bg { fill: var(--paper); opacity: 0.92; }
+  .map-svg .nnum { font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .map-svg .ncap { font-size: 9px; letter-spacing: 0.18em; fill: var(--muted); }
+  .map-svg .tag { font-size: 9.5px; letter-spacing: 0.22em; fill: var(--muted); }
+
+  /* ── 侧栏速览 ───────────────────── */
+  .panel {
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 14px;   /* 长地图滚动时侧栏跟随 */
+  }
+  .panel .eyebrow { text-align: right; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
+  .sbox.ai-box { border-top: 2.5px solid var(--ai); }
+  .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
+  .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); margin-left: 2px; }
+  .sbox .v.acc { color: var(--accent); }
+  .sbox .l { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-top: 5px; line-height: 1.5; }
+  .note {
+    border: 1px solid var(--hairline); background: #fdfcf7; padding: 10px 12px;
+    font-style: italic; font-size: 12.5px; line-height: 1.65; color: var(--ink);
+  }
+  .note .nm { font-family: var(--mono); font-style: normal; font-size: 11px; }
+
+  .drill h3 { font-size: 15px; margin: 2px 0 1px; }
+  .drill .dcap { font-family: var(--mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.06em; }
+  .rrows { margin-top: 10px; display: flex; flex-direction: column; }
+  .rrow {
+    display: grid; grid-template-columns: 42px 1fr auto; gap: 9px; align-items: center;
+    padding: 5.5px 4px; border-bottom: 1px dotted var(--hairline);
+  }
+  .rrow:hover { background: rgba(255,255,255,0.7); }
+  .rrow .rn { font-size: 13px; }
+  .rrow .dots { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+  .rrow .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--blue); display: block; }
+  .rrow .dots i.acc { background: var(--accent); }
+  .rrow .rv { font-family: var(--mono); font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+  .rrow .rv b { color: var(--ink); font-size: 12px; }
+
+  /* ── 站点索引 ───────────────────── */
+  .idx-rows { margin-top: 8px; display: flex; flex-direction: column; }
+  .irow {
+    appearance: none; background: none; border: none; text-align: left; cursor: pointer;
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: baseline;
+    padding: 5.5px 6px; border-bottom: 1px dotted var(--hairline); color: var(--ink);
+  }
+  .irow:hover { background: rgba(255,255,255,0.7); }
+  .irow[aria-pressed="true"] { background: #fdfcf7; box-shadow: inset 2.5px 0 0 var(--accent); }
+  .irow .ino { font-family: var(--mono); font-size: 10px; color: var(--ink-2); }
+  .irow .inm { font-family: var(--serif); font-size: 13px; }
+  .irow[aria-pressed="true"] .inm { font-weight: 700; }
+  .irow .ist { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); white-space: nowrap; }
+
+  /* ── 趋势图 ─────────────────────── */
+  .trend-svg { display: block; width: 100%; height: auto; margin-top: 6px; }
+  .trend-svg text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .trend-svg .gl { stroke: var(--hairline); stroke-width: 1; }
+  .trend-svg .bl { stroke: var(--ink-2); stroke-width: 1; }
+  .trend-svg .ser { stroke: var(--blue); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-svg .xh { stroke: var(--ink-2); stroke-width: 0.8; stroke-dasharray: 3 3; }
+  .trend-svg .dot { fill: var(--blue); stroke: var(--paper); stroke-width: 2; }
+  .trend-svg .endbox { fill: #fff; stroke: var(--ink); stroke-width: 1; }
+  .trend-svg .endtxt { font-size: 12px; font-weight: 700; fill: var(--ink); }
+
+  /* ── 提示框 ─────────────────────── */
+  .tip {
+    position: fixed; z-index: 30; pointer-events: none; display: none;
+    background: #fffef9; border: 1px solid var(--ink); border-radius: 2px;
+    padding: 9px 12px; font-size: 12px; box-shadow: 3px 3px 0 rgba(36,39,46,0.12);
+    max-width: 270px; font-family: var(--serif);
+  }
+  .tip .tt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--ink-2); margin-bottom: 5px; }
+  .tip .trow { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  .tip .tk { width: 12px; height: 2px; flex: none; }
+  .tip .tval { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tip .tlab { color: var(--ink-2); font-size: 11.5px; }
+
+  /* ── 表格 ───────────────────────── */
+  .tbl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .tbl-head h2 { font-size: 17px; }
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 500;
+    color: var(--ink-2); border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--hairline);
+  }
+  th, td { text-align: right; padding: 7px 10px; white-space: nowrap; }
+  tbody td { border-bottom: 1px dotted var(--hairline); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody td:first-child { font-family: var(--serif); font-size: 13px; color: var(--ink); }
+
+  footer { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; font-style: italic; }
+  footer code { font-family: var(--mono); font-style: normal; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="atlas">
+  <div class="wrap">
+
+    <header>
+      <div class="eyebrow"><span class="no">01</span> · LOAN APPLICATION · CUSTOMER JOURNEY ATLAS</div>
+      <h1>贷款申请客户旅程图鉴：客户此刻在旅途的哪一站</h1>
+      <hr class="rule">
+      <div class="sub">
+        <span>七站旅程 · 申请发送 → 合同激活</span>
+        <span id="refresh-at"></span>
+        <span>演示数据 · 每日 T+1 08:00 刷新</span>
+      </div>
+    </header>
+
+    <div class="filters" role="group" aria-label="筛选">
+      <span class="flabel">日期范围 RANGE</span>
+      <div class="seg" id="range-seg">
+        <button data-range="1" aria-pressed="false">昨日 (T+1)</button>
+        <button data-range="7" aria-pressed="true">近7天</button>
+        <button data-range="30" aria-pressed="false">近30天</button>
+      </div>
+      <span class="flabel">大区 REGION</span>
+      <select id="region-sel" aria-label="大区筛选"></select>
+    </div>
+
+    <div class="main">
+      <div class="fig">
+        <div class="map-head">
+          <h2>客户旅程全景图</h2>
+          <span class="eyebrow" id="map-cap"></span>
+        </div>
+        <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="group" aria-label="客户旅程地图：七个站点与当前停留人数，站点可选中下钻"></svg>
+        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数（微量值设 4px 可读下限）；<span style="color:var(--accent)">红色站点</span>为停留率最高的摩擦点（当前停留 ÷ 近3日到站）；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow"><span class="no">02</span> · CATALOG AT A GLANCE</div>
+        <div class="stats">
+          <div class="sbox"><div class="v" id="kpi-in">–</div><div class="l">期间进入用户<br>（申请发送）<span id="kpi-in-delta"></span></div></div>
+          <div class="sbox"><div class="v" id="kpi-done">–</div><div class="l">期间合同激活<br>（完成放款）<span id="kpi-done-delta"></span></div></div>
+          <div class="sbox"><div class="v" id="kpi-conv">–</div><div class="l">端到端转化率<br>激活 ÷ 发送</div></div>
+          <div class="sbox"><div class="v acc" id="kpi-stuck">–</div><div class="l">当前在途停留<br>快照 · 不随日期变化</div></div>
+        </div>
+        <div class="note" id="note"></div>
+        <div class="drill">
+          <div class="eyebrow"><span class="no">03</span> · BY REGION</div>
+          <h3 id="drill-title">–</h3>
+          <div class="dcap" id="drill-cap"></div>
+          <div class="rrows" id="drill-regions"></div>
+        </div>
+        <div class="figcap"><b>图 2</b> · 每一圆点 ≈ <span id="dot-unit">–</span> 名停留客户；<span style="color:var(--accent)">红点行</span>为该站停留最多的大区。</div>
+        <div class="idx">
+          <div class="eyebrow"><span class="no">04</span> · STATION INDEX</div>
+          <div class="idx-rows" id="idx-rows"></div>
+        </div>
+        <div class="ai">
+          <div class="eyebrow"><span class="no">05</span> · AI COPILOT</div>
+          <div class="stats" style="margin-top:10px">
+            <div class="sbox ai-box"><div class="v" id="ai-now">–</div><div class="l">当前 AI 协助中<br>占在途停留 <span id="ai-cov">–</span></div></div>
+            <div class="sbox ai-box"><div class="v" id="ai-moved">–</div><div class="l">期间 AI 协助推进<br>占站间流转 <span id="ai-share">–</span></div></div>
+          </div>
+          <div class="note" id="ai-note" style="margin-top:9px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fig below">
+      <div class="map-head">
+        <h2>每日进入用户趋势</h2>
+        <span class="eyebrow"><span class="no">06</span> · DAILY INFLOW</span>
+      </div>
+      <svg class="trend-svg" id="trend" viewBox="0 0 980 240" role="img" aria-label="每日进入用户趋势"></svg>
+      <div class="figcap"><b>图 3</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
+    </div>
+
+    <div class="fig below">
+      <div class="tbl-head">
+        <h2>旅程明细</h2>
+        <button class="tbl-toggle" id="tbl-toggle" aria-expanded="false">展开表格</button>
+      </div>
+      <div class="tbl-wrap" id="tbl-wrap" hidden></div>
+      <div class="figcap"><b>图 4</b> · 各站点进入 / 转化 / 停留明细，含分大区停留列。</div>
+    </div>
+
+    <footer>
+      口径说明 —— 「期间进入」= 所选日期范围内首次到达该站的用户数；「当前停留」= 截至最近刷新时点仍停留在该站、未流转到下一站的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。
+      本页为产品看板原型，数据由前端按日期种子模拟生成（每天刷新出新数值）；接入生产时替换 <code>loadData()</code> 为数仓 / API 查询即可，页面结构与交互不变。
+    </footer>
+
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 常量 ──────────────────────────────────────────────
+  var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
+  var REGIONS = ['华东', '华南', '华北', '华中', '西南', '西北'];
+  var REGION_W = [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];      // 各大区体量权重
+  var CONV = [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];        // 相邻站点基准转化率（还款卡验证环节通过率最低）
+  var BASE_DAILY = 620;                                    // 全国日均申请发送基数
+
+  // ── 模拟数据（按日期种子，每天刷新出新数值；生产环境替换为 API） ──
+  function hashSeed(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function dstr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d; }
+
+  function dayRegionEntered(dateStr, ri) {
+    var r = rng(hashSeed(dateStr + '|' + REGIONS[ri]));
+    var dow = new Date(dateStr + 'T00:00:00').getDay();
+    var wk = (dow === 0 || dow === 6) ? 0.62 : 1.0;
+    var sent = BASE_DAILY * (REGION_W[ri] / 5.5) * wk * (0.82 + r() * 0.36);
+    var out = [Math.round(sent)], cur = sent;
+    for (var s = 0; s < CONV.length; s++) {
+      cur = cur * Math.min(0.99, CONV[s] * (0.92 + r() * 0.16));
+      out.push(Math.round(cur));
+    }
+    return out;
+  }
+  // 当前停留快照：近3日进入未流转的滞留部分（终点站不计停留）
+  function stuckSnapshot(ri) {
+    var today = dstr(daysAgo(0));
+    var r = rng(hashSeed('stuck|' + today + '|' + REGIONS[ri]));
+    var acc = STAGES.map(function () { return 0; });
+    for (var d = 1; d <= 3; d++) {
+      var e = dayRegionEntered(dstr(daysAgo(d)), ri);
+      for (var s = 0; s < STAGES.length - 1; s++) {
+        var dropped = e[s] - e[s + 1];
+        acc[s] += dropped * (0.5 + r() * 0.35);   // 未流转用户中仍视为「停留在途」的比例
+      }
+    }
+    return acc.map(Math.round);
+  }
+
+  function loadData(rangeDays, regionIdx) {
+    var entered = STAGES.map(function () { return 0; });
+    var series = [];
+    var trendDays = Math.max(rangeDays, 14);
+    for (var d = trendDays; d >= 1; d--) {
+      var ds = dstr(daysAgo(d));
+      var daySent = 0;
+      for (var ri = 0; ri < REGIONS.length; ri++) {
+        if (regionIdx !== -1 && ri !== regionIdx) continue;
+        var e = dayRegionEntered(ds, ri);
+        daySent += e[0];
+        if (d <= rangeDays) for (var s = 0; s < STAGES.length; s++) entered[s] += e[s];
+      }
+      series.push({ date: ds, val: daySent });
+    }
+    return { entered: entered, series: series };
+  }
+
+  // ── 状态 ──────────────────────────────────────────────
+  var STUCK = REGIONS.map(function (_, ri) { return stuckSnapshot(ri); });   // [region][stage]
+  // 近3日到站人数（停留率的分母：停留快照正是从近3日进入中沉淀出来的）
+  var ENT3 = REGIONS.map(function (_, ri) {
+    var acc = STAGES.map(function () { return 0; });
+    for (var d = 1; d <= 3; d++) {
+      var e = dayRegionEntered(dstr(daysAgo(d)), ri);
+      for (var s = 0; s < STAGES.length; s++) acc[s] += e[s];
+    }
+    return acc;
+  });
+
+  // AI 助手协助快照：各站停留客户中正被 AI 主动跟进/协助的人数
+  var AI_COV = [0.32, 0.55, 0.48, 0.62, 0.5, 0.38];   // 各站基准覆盖率（摩擦越大投入越高）
+  var AIH = REGIONS.map(function (_, ri) {
+    var r = rng(hashSeed('ai|' + dstr(daysAgo(0)) + '|' + REGIONS[ri]));
+    return STUCK[ri].map(function (v, s) {
+      if (s >= STAGES.length - 1) return 0;
+      return Math.round(v * Math.min(0.9, AI_COV[s] * (0.85 + r() * 0.3)));
+    });
+  });
+  // 默认下钻站点 = 当前停留率最高的站（最大摩擦点：停留 ÷ 近3日到站）
+  var initStage = 0, initMax = -1;
+  for (var si = 0; si < STAGES.length - 1; si++) {
+    var st = STUCK.reduce(function (t, row) { return t + row[si]; }, 0);
+    var e3 = ENT3.reduce(function (t, row) { return t + row[si]; }, 0);
+    var rate = e3 ? st / e3 : 0;
+    if (rate > initMax) { initMax = rate; initStage = si; }
+  }
+  var state = { range: 7, region: -1, stage: initStage };
+
+  function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
+  function pct(n) { return (n * 100).toFixed(1) + '%'; }
+  function rangeName() { return state.range === 1 ? '昨日' : '近' + state.range + '天'; }
+  function regionName() { return state.region === -1 ? '全部大区' : REGIONS[state.region]; }
+  function stuckOf(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += STUCK[ri][stage];
+    }
+    return t;
+  }
+  function aiOf(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += AIH[ri][stage];
+    }
+    return t;
+  }
+  function ent3Of(stage) {
+    var t = 0;
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t += ENT3[ri][stage];
+    }
+    return t;
+  }
+  // 最大摩擦点 = 停留率（当前停留 ÷ 近3日到站）最高的站，随大区筛选变化
+  function frictionOf() {
+    var best = 0, bestRate = -1;
+    for (var s = 0; s < STAGES.length - 1; s++) {
+      var e3 = ent3Of(s);
+      var rate = e3 ? stuckOf(s) / e3 : 0;
+      if (rate > bestRate) { bestRate = rate; best = s; }
+    }
+    return { stage: best, rate: bestRate };
+  }
+  function cssv(name) { return getComputedStyle(document.querySelector('.atlas')).getPropertyValue(name).trim(); }
+
+  // ── 提示框 ────────────────────────────────────────────
+  var tip = document.getElementById('tip');
+  function tipShow(x, y, title, rows) {
+    tip.textContent = '';
+    var t = document.createElement('div'); t.className = 'tt'; t.textContent = title; tip.appendChild(t);
+    rows.forEach(function (row) {
+      var el = document.createElement('div'); el.className = 'trow';
+      var k = document.createElement('span'); k.className = 'tk'; k.style.background = row.color; el.appendChild(k);
+      var v = document.createElement('span'); v.className = 'tval'; v.textContent = row.value; el.appendChild(v);
+      var l = document.createElement('span'); l.className = 'tlab'; l.textContent = row.label; el.appendChild(l);
+      tip.appendChild(el);
+    });
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var px = Math.min(x + 14, window.innerWidth - w - 10);
+    var py = y - h - 12 < 8 ? y + 16 : y - h - 12;
+    tip.style.left = px + 'px'; tip.style.top = py + 'px';
+  }
+  function tipHide() { tip.style.display = 'none'; }
+
+  // ── SVG 工具 ──────────────────────────────────────────
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, attrs, cls) {
+    var e = document.createElementNS(NS, n);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (cls) e.setAttribute('class', cls);
+    return e;
+  }
+  function txt(x, y, str, cls, anchor, extra) {
+    var t = el('text', { x: x, y: y, 'text-anchor': anchor || 'start' }, cls);
+    if (extra) for (var k in extra) t.setAttribute(k, extra[k]);
+    t.textContent = str;
+    return t;
+  }
+
+  // ── 旅程地图 ──────────────────────────────────────────
+  // 路线 = 站点(st) + 隐形转弯路标点，让曲线像地图上的驿路一样大幅蜿蜒
+  var ROUTE = [
+    { x: 150, y: 130, st: 0 }, { x: 420, y: 72 },
+    { x: 690, y: 150, st: 1 }, { x: 868, y: 290 },
+    { x: 660, y: 430, st: 2 }, { x: 400, y: 468 },
+    { x: 185, y: 580, st: 3 }, { x: 116, y: 730 },
+    { x: 390, y: 820, st: 4 }, { x: 665, y: 852 },
+    { x: 830, y: 980, st: 5 }, { x: 640, y: 1102 },
+    { x: 320, y: 1105, st: 6 }
+  ];
+  var SP = ROUTE.filter(function (p) { return p.st !== undefined; });   // 站点路点
+  var BOX = [   // 注释框左上角（nx/ny 可覆盖停留数字位置）
+    { x: 30,  y: 30 },  { x: 600, y: 38 },  { x: 776, y: 470 }, { x: 30,  y: 450 },
+    { x: 255, y: 906 }, { x: 790, y: 1088, nx: 896, ny: 990 }, { x: 95, y: 985 }
+  ];
+  var BW = 168, BH = 48;
+
+  function catmull(pts) {
+    // Catmull-Rom → 每段三次贝塞尔控制点
+    var segs = [];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      segs.push({
+        p1: p1, p2: p2,
+        c1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
+        c2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 }
+      });
+    }
+    return segs;
+  }
+  // 圆弧路径：自 12 点方向顺时针占 frac 圈
+  function arcPath(cx, cy, R, frac) {
+    var a0 = -Math.PI / 2, a1 = a0 + Math.PI * 2 * frac;
+    var x0 = cx + R * Math.cos(a0), y0 = cy + R * Math.sin(a0);
+    var x1 = cx + R * Math.cos(a1), y1 = cy + R * Math.sin(a1);
+    return 'M' + x0.toFixed(1) + ' ' + y0.toFixed(1) +
+      ' A' + R.toFixed(1) + ' ' + R.toFixed(1) + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' +
+      x1.toFixed(1) + ' ' + y1.toFixed(1);
+  }
+
+  function renderMap(data) {
+    document.getElementById('map-cap').textContent = (rangeName() + ' · ' + regionName()).toUpperCase();
+    var svg = document.getElementById('map'); svg.textContent = '';
+
+    // 纸面点阵网格
+    var defs = el('defs', {});
+    var pat = el('pattern', { id: 'dotgrid', width: 26, height: 26, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(el('circle', { cx: 1, cy: 1, r: 0.9, fill: 'rgba(36,39,46,0.055)' }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    svg.appendChild(el('rect', { x: 0, y: 0, width: 980, height: 1180, fill: 'url(#dotgrid)' }));
+
+    // 罗盘（装饰）
+    var comp = el('g', {});
+    comp.appendChild(el('circle', { cx: 930, cy: 44, r: 16, fill: 'none', stroke: cssv('--hairline'), 'stroke-width': 1 }));
+    comp.appendChild(el('path', { d: 'M930 32 L934 48 L930 44 L926 48 Z', fill: cssv('--ink-2') }));
+    comp.appendChild(txt(930, 76, 'N', 'tag', 'middle'));
+    svg.appendChild(comp);
+
+    var spans = catmull(ROUTE);
+    var maxIn = data.entered[0] || 1;
+    // 每一小段曲线归属于哪一站间区段（用于通道宽度）
+    function segOf(spanIdx) {
+      var seen = 0;
+      for (var j = 0; j <= spanIdx; j++) if (ROUTE[j].st !== undefined) seen++;
+      return seen - 1;
+    }
+
+    function ctrl(sp) {
+      return ' C' + sp.c1.x.toFixed(1) + ' ' + sp.c1.y.toFixed(1) + ', ' +
+        sp.c2.x.toFixed(1) + ' ' + sp.c2.y.toFixed(1) + ', ' + sp.p2.x + ' ' + sp.p2.y;
+    }
+    // 通道：每个站间区段合并为一条 path（半透明分段端帽会在转弯处叠出圆斑）
+    for (var k = 0; k < SP.length - 1; k++) {
+      var dPath = 'M' + SP[k].x + ' ' + SP[k].y + ctrl(spans[2 * k]) + ctrl(spans[2 * k + 1]);
+      var w = 4 + 22 * (data.entered[k + 1] / maxIn);
+      svg.appendChild(el('path', { d: dPath, 'stroke-width': w.toFixed(1) }, 'ribbon'));
+    }
+    // 虚线路线（整条一笔）
+    var rd = 'M' + ROUTE[0].x + ' ' + ROUTE[0].y;
+    spans.forEach(function (sp) { rd += ctrl(sp); });
+    svg.appendChild(el('path', { d: rd }, 'route'));
+
+    // 转弯路标点处的转化率标签（恰为两站之间）
+    ROUTE.forEach(function (p, i) {
+      if (p.st !== undefined) return;
+      var seg = segOf(i - 1);
+      var label = '→ ' + (data.entered[seg] ? pct(data.entered[seg + 1] / data.entered[seg]) : '–');
+      var tw = label.length * 6.6 + 10;
+      svg.appendChild(el('rect', { x: p.x - tw / 2, y: p.y - 26, width: tw, height: 15, rx: 2 }, 'conv-bg'));
+      svg.appendChild(txt(p.x, p.y - 14.5, label, 'conv-l', 'middle'));
+    });
+
+    // 入口 / 终点 标记
+    svg.appendChild(txt(SP[0].x - 118, SP[0].y + 5, '入口 · ENTRY', 'tag'));
+    svg.appendChild(txt(SP[6].x, SP[6].y - 34, '终点 · ACTIVATED', 'tag', 'middle'));
+
+    // 最大摩擦点（停留率最高的站）
+    var friction = frictionOf();
+
+    // 注释框 + 引线 + 站点
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var p = SP[s], b = BOX[s];
+      var stuck = isLast ? null : stuckOf(s);
+      var isFriction = !isLast && s === friction.stage;
+      var selected = s === state.stage;
+      var accent = cssv('--accent'), blue = cssv('--blue');
+
+      var g = el('g', { tabindex: isLast ? -1 : 0, role: isLast ? null : 'button' }, 'st');
+      if (isLast) g.removeAttribute('role');
+      if (!isLast) {
+        g.setAttribute('aria-pressed', String(selected));
+        g.setAttribute('aria-label', '0' + (s + 1) + ' ' + name + '：' + rangeName() + '进入 ' +
+          fmt(data.entered[s]) + ' 人，当前停留 ' + fmt(stuck) + ' 人');
+      } else {
+        g.setAttribute('aria-label', '0' + (s + 1) + ' ' + name + '：' + rangeName() + '激活 ' + fmt(data.entered[6]) + ' 人');
+      }
+
+      // 引线：框边中点 → 站点
+      var bx = b.x + BW / 2, by = b.y + (b.y < p.y ? BH : 0);
+      g.appendChild(el('path', { d: 'M' + bx + ' ' + by + ' L' + p.x + ' ' + (p.y + (b.y < p.y ? -1 : 1) * 6) }, 'leader'));
+
+      // 注释框
+      var box = el('rect', { x: b.x, y: b.y, width: BW, height: BH, rx: 2 }, 'abox');
+      if (selected) { box.style.stroke = cssv('--ink'); box.style.strokeWidth = '1.5'; }
+      g.appendChild(box);
+      var t1 = txt(b.x + 10, b.y + 16, '0' + (s + 1), 'abox-t1');
+      if (isFriction) t1.style.fill = accent;
+      g.appendChild(t1);
+      g.appendChild(txt(b.x + 34, b.y + 18, name, 'abox-t2'));
+      g.appendChild(txt(b.x + 10, b.y + 37, (isLast ? '期间激活 ' : '期间进入 ') + fmt(data.entered[s]), 'abox-t3'));
+
+      // 站点圆：面积 ∝ 停留，仅设 4px 可读下限（外加透明扩大命中区）
+      var r = isLast ? 15 : Math.max(4, Math.sqrt(stuck || 0) * 1.6);
+      g.appendChild(el('circle', { cx: p.x, cy: p.y, r: (r + 14).toFixed(1), fill: 'transparent' }));
+      var c = el('circle', { cx: p.x, cy: p.y, r: r.toFixed(1) }, 'station-c');
+      if (isFriction) c.style.stroke = accent;
+      if (selected) c.style.strokeWidth = '3.2';
+      g.appendChild(c);
+
+      // AI 助手协助弧：外圈琥珀色弧长 = 该站停留客户中正被 AI 协助的占比
+      if (!isLast && stuck > 0) {
+        var aiN = aiOf(s), frac = Math.min(0.98, aiN / stuck);
+        if (frac > 0.02) {
+          g.appendChild(el('path', {
+            d: arcPath(p.x, p.y, r + 6.5, frac),
+            fill: 'none', stroke: cssv('--ai'), 'stroke-width': 3, 'stroke-linecap': 'round'
+          }));
+        }
+      }
+      if (isLast) {
+        g.appendChild(el('circle', { cx: p.x, cy: p.y, r: 9, fill: 'none', stroke: blue, 'stroke-width': 1.2 }));
+        g.appendChild(el('circle', { cx: p.x, cy: p.y, r: 3.4 }, 'station-core'));
+      } else {
+        var core = el('circle', { cx: p.x, cy: p.y, r: 3.4 }, 'station-core');
+        if (isFriction) core.style.fill = accent;
+        g.appendChild(core);
+      }
+
+      // 站点数字：当前停留（终点=期间激活）；nx/ny 可指定避让位置
+      var below = b.y < p.y;   // 框在上方 → 数字放下方
+      var nX = b.nx !== undefined ? b.nx : p.x;
+      var nY = b.ny !== undefined ? b.ny : (below ? p.y + r + 20 : p.y - r - 16);
+      var capDown = b.ny !== undefined ? true : below;
+      var nv = txt(nX, nY, isLast ? fmt(data.entered[6]) : fmt(stuck), 'nnum', 'middle');
+      if (isFriction) nv.style.fill = accent;
+      g.appendChild(nv);
+      g.appendChild(txt(nX, nY + (capDown ? 13 : -13), isLast ? '期间激活' : '当前停留', 'ncap', 'middle'));
+
+      // 交互
+      function pick() {
+        state.stage = s;
+        var d2 = loadData(state.range, state.region);
+        renderMap(d2); renderDrill(); renderIndex(d2);
+        var fg = document.querySelector('#map .st[aria-pressed="true"]');
+        if (fg) fg.focus();   // 重建 SVG 后把焦点还给选中站，键盘操作不迷路
+      }
+      if (!isLast) {
+        g.addEventListener('click', pick);
+        g.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); }
+        });
+      }
+      function stationTip(ev) {
+        var rows = [{ color: blue, value: fmt(data.entered[s]), label: rangeName() + (isLast ? '激活' : '进入') }];
+        if (!isLast) {
+          rows.push({ color: accent, value: fmt(stuck), label: '当前停留（快照）' });
+          var e3 = ent3Of(s);
+          if (e3) rows.push({ color: 'transparent', value: pct(stuck / e3), label: '停留率 · 停留÷近3日到站' });
+          var aiN = aiOf(s);
+          rows.push({ color: cssv('--ai'), value: fmt(aiN), label: 'AI 协助中' + (stuck ? ' · 占停留 ' + pct(aiN / stuck) : '') });
+        }
+        if (s > 0) rows.push({ color: 'transparent', value: data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–', label: '上站转化' });
+        var tx, ty;
+        if (ev && ev.clientX !== undefined) { tx = ev.clientX; ty = ev.clientY; }
+        else { var rc = c.getBoundingClientRect(); tx = rc.left + rc.width / 2; ty = rc.top; }
+        tipShow(tx, ty, '0' + (s + 1) + ' · ' + name + ' · ' + regionName(), rows);
+      }
+      g.addEventListener('pointermove', stationTip);
+      g.addEventListener('focus', stationTip);
+      g.addEventListener('pointerleave', tipHide);
+      g.addEventListener('blur', tipHide);
+      svg.appendChild(g);
+    });
+  }
+
+  // ── 侧栏 ──────────────────────────────────────────────
+  function renderKpis(data, prevEntered) {
+    var sent = data.entered[0], done = data.entered[6];
+    document.getElementById('kpi-in').textContent = fmt(sent);
+    document.getElementById('kpi-done').textContent = fmt(done);
+    document.getElementById('kpi-conv').textContent = sent ? pct(done / sent) : '–';
+    var totalStuck = 0;
+    for (var s = 0; s < STAGES.length - 1; s++) totalStuck += stuckOf(s);
+    document.getElementById('kpi-stuck').textContent = fmt(totalStuck);
+
+    [['kpi-in-delta', sent, prevEntered[0]], ['kpi-done-delta', done, prevEntered[6]]].forEach(function (it) {
+      var elx = document.getElementById(it[0]); elx.textContent = '';
+      if (!it[2]) return;
+      var d = (it[1] - it[2]) / it[2];
+      elx.textContent = ' · ' + (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '% vs 上一周期';
+    });
+
+    // 摩擦点批注（停留率口径）
+    var fr = frictionOf();
+    var note = document.getElementById('note'); note.textContent = '';
+    note.appendChild(document.createTextNode('当前最大摩擦点为「' + STAGES[fr.stage] + '」—— 近3日到站客户中 '));
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.style.color = cssv('--accent');
+    nm.textContent = pct(fr.rate);
+    note.appendChild(nm);
+    note.appendChild(document.createTextNode(' 仍停留未推进（' + fmt(stuckOf(fr.stage)) + ' 人）。点击地图站点可切换下钻。'));
+  }
+
+  function renderDrill() {
+    var s = state.stage;
+    document.getElementById('drill-title').textContent = '0' + (s + 1) + ' · ' + STAGES[s] + ' · 当前停留';
+    document.getElementById('drill-cap').textContent = '截至最近刷新 · ' + regionName();
+    var rows = REGIONS.map(function (r, ri) { return { name: r, val: STUCK[ri][s], ri: ri }; })
+      .filter(function (r) { return state.region === -1 || r.ri === state.region; })
+      .sort(function (a, b) { return b.val - a.val; });
+    var total = rows.reduce(function (t, r) { return t + r.val; }, 0);
+    var max = rows.length ? rows[0].val : 1;
+    var unit = Math.max(1, Math.ceil(max / 24));
+    document.getElementById('dot-unit').textContent = unit;
+
+    var root = document.getElementById('drill-regions'); root.textContent = '';
+    rows.forEach(function (r, i) {
+      var row = document.createElement('div'); row.className = 'rrow'; row.tabIndex = 0;
+      var rn = document.createElement('span'); rn.className = 'rn'; rn.textContent = r.name; row.appendChild(rn);
+      var dots = document.createElement('span'); dots.className = 'dots';
+      var n = Math.max(r.val > 0 ? 1 : 0, Math.round(r.val / unit));
+      for (var k = 0; k < n; k++) {
+        var d = document.createElement('i'); if (i === 0) d.className = 'acc';
+        dots.appendChild(d);
+      }
+      row.appendChild(dots);
+      var rv = document.createElement('span'); rv.className = 'rv';
+      var b = document.createElement('b'); b.textContent = fmt(r.val); rv.appendChild(b);
+      rv.appendChild(document.createTextNode(total ? ' · ' + pct(r.val / total) : ''));
+      row.appendChild(rv);
+      function show(ev) {
+        var rect = row.getBoundingClientRect();
+        tipShow(ev && ev.clientX ? ev.clientX : rect.left + rect.width / 2,
+                ev && ev.clientY ? ev.clientY : rect.top,
+                r.name + ' · ' + STAGES[s],
+                [{ color: cssv('--blue'), value: fmt(r.val), label: '当前停留用户' },
+                 { color: 'transparent', value: total ? pct(r.val / total) : '–', label: '占该站停留' }]);
+      }
+      row.addEventListener('pointermove', show);
+      row.addEventListener('focus', show);
+      row.addEventListener('pointerleave', tipHide);
+      row.addEventListener('blur', tipHide);
+      root.appendChild(row);
+    });
+  }
+
+  // ── AI 助手速览 ───────────────────────────────────────
+  function renderAiPanel(data) {
+    var totalStuck = 0, aiNow = 0;
+    for (var s = 0; s < STAGES.length - 1; s++) { totalStuck += stuckOf(s); aiNow += aiOf(s); }
+    document.getElementById('ai-now').textContent = fmt(aiNow);
+    document.getElementById('ai-cov').textContent = totalStuck ? pct(aiNow / totalStuck) : '–';
+
+    // 期间 AI 协助推进：经 AI 协助后流转到下一站的人次（按日期种子的归因比例）
+    var r = rng(hashSeed('aiRate|' + dstr(daysAgo(0))));
+    var aiMoved = 0, totalMoved = 0;
+    for (var s2 = 0; s2 < STAGES.length - 1; s2++) {
+      var moved = data.entered[s2 + 1];
+      totalMoved += moved;
+      aiMoved += Math.round(moved * (0.16 + r() * 0.12));
+    }
+    document.getElementById('ai-moved').textContent = fmt(aiMoved);
+    document.getElementById('ai-share').textContent = totalMoved ? pct(aiMoved / totalMoved) : '–';
+
+    var upA = 0.58 + r() * 0.1, upB = 0.36 + r() * 0.06;
+    var note = document.getElementById('ai-note'); note.textContent = '';
+    note.appendChild(document.createTextNode('AI 协助的停留客户次日推进率 '));
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = pct(upA);
+    note.appendChild(nm);
+    note.appendChild(document.createTextNode('，为未协助客户（' + pct(upB) + '）的 ' + (upA / upB).toFixed(1) + ' 倍（全局口径示意值，未随筛选拆分）。地图站点外圈琥珀色弧 = 该站 AI 协助占比。'));
+  }
+
+  // ── 站点索引 ──────────────────────────────────────────
+  function renderIndex(data) {
+    var root = document.getElementById('idx-rows'); root.textContent = '';
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var row = document.createElement('button'); row.className = 'irow';
+      row.setAttribute('aria-pressed', String(s === state.stage));
+      var no = document.createElement('span'); no.className = 'ino'; no.textContent = '0' + (s + 1); row.appendChild(no);
+      var nm = document.createElement('span'); nm.className = 'inm'; nm.textContent = name; row.appendChild(nm);
+      var st = document.createElement('span'); st.className = 'ist';
+      st.textContent = isLast ? '激活 ' + fmt(data.entered[6]) : '进入 ' + fmt(data.entered[s]) + ' · 停留 ' + fmt(stuckOf(s));
+      row.appendChild(st);
+      if (!isLast) {
+        row.addEventListener('click', function () {
+          state.stage = s;
+          renderMap(data); renderDrill(); renderIndex(data);
+        });
+      } else { row.style.cursor = 'default'; }
+      root.appendChild(row);
+    });
+  }
+
+  // ── 趋势图（点阵面积） ────────────────────────────────
+  function renderTrend(data) {
+    document.getElementById('trend-cap').textContent = regionName() + '口径';
+    var svg = document.getElementById('trend'); svg.textContent = '';
+    var W = 980, H = 240, L = 56, R = 20, T = 18, B = 34;
+    var pts = data.series.slice(-14);
+    var maxV = Math.max.apply(null, pts.map(function (p) { return p.val; })) || 1;
+    // nice-number 刻度：步长取 1/2/2.5/5×10ⁿ，保证刻度是整洁数
+    var rawStep = maxV / 4;
+    var p10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var mm = rawStep / p10;
+    var step = (mm <= 1 ? 1 : mm <= 2 ? 2 : mm <= 2.5 ? 2.5 : mm <= 5 ? 5 : 10) * p10;
+    var top = step * 4;
+    function X(i) { return L + i * (W - L - R) / (pts.length - 1); }
+    function Y(v) { return T + (1 - v / top) * (H - T - B); }
+
+    var defs = el('defs', {});
+    var pat = el('pattern', { id: 'stipple', width: 7, height: 7, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(el('circle', { cx: 1.5, cy: 1.5, r: 1.15, fill: cssv('--blue'), opacity: 0.4 }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+
+    for (var g = 0; g <= 4; g++) {
+      var v = top * g / 4, y = Y(v);
+      svg.appendChild(el('line', { x1: L, x2: W - R, y1: y, y2: y }, g === 0 ? 'bl' : 'gl'));
+      svg.appendChild(txt(L - 8, y + 3.5, Math.round(v).toLocaleString('zh-CN'), null, 'end'));
+    }
+    pts.forEach(function (p, i) {
+      if (i % 2 !== (pts.length - 1) % 2) return;
+      svg.appendChild(txt(X(i), H - B + 18, p.date.slice(5).replace('-', '/'), null, 'middle'));
+    });
+
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.val).toFixed(1); }).join(' ');
+    svg.appendChild(el('path', { d: line + ' L' + X(pts.length - 1).toFixed(1) + ' ' + Y(0) + ' L' + L + ' ' + Y(0) + ' Z', fill: 'url(#stipple)' }));
+    svg.appendChild(el('path', { d: line }, 'ser'));
+
+    var li = pts.length - 1;
+    svg.appendChild(el('circle', { cx: X(li), cy: Y(pts[li].val), r: 4 }, 'dot'));
+    var lbl = fmt(pts[li].val);
+    var bw = lbl.length * 7.5 + 16;
+    svg.appendChild(el('rect', { x: X(li) - bw - 10, y: Y(pts[li].val) - 30, width: bw, height: 20, rx: 2 }, 'endbox'));
+    svg.appendChild(txt(X(li) - 10 - bw / 2, Y(pts[li].val) - 16, lbl, 'endtxt', 'middle'));
+
+    var xh = el('line', { y1: T, y2: H - B, visibility: 'hidden' }, 'xh');
+    var hd = el('circle', { r: 4, visibility: 'hidden' }, 'dot');
+    svg.appendChild(xh); svg.appendChild(hd);
+    var hit = el('rect', { x: L, y: T, width: W - L - R, height: H - T - B, fill: 'transparent' });
+    hit.addEventListener('pointermove', function (ev) {
+      var box = svg.getBoundingClientRect();
+      var mx = (ev.clientX - box.left) / box.width * W;
+      var i = Math.max(0, Math.min(pts.length - 1, Math.round((mx - L) / ((W - L - R) / (pts.length - 1)))));
+      xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('visibility', 'visible');
+      hd.setAttribute('cx', X(i)); hd.setAttribute('cy', Y(pts[i].val)); hd.setAttribute('visibility', 'visible');
+      tipShow(ev.clientX, ev.clientY, pts[i].date + ' · ' + regionName(),
+        [{ color: cssv('--blue'), value: fmt(pts[i].val), label: '进入用户（申请发送）' }]);
+    });
+    hit.addEventListener('pointerleave', function () {
+      xh.setAttribute('visibility', 'hidden'); hd.setAttribute('visibility', 'hidden'); tipHide();
+    });
+    svg.appendChild(hit);
+  }
+
+  // ── 表格 ──────────────────────────────────────────────
+  function renderTable(data) {
+    var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
+    var tb = document.createElement('table');
+    var thead = document.createElement('thead'); var hr = document.createElement('tr');
+    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留', 'AI协助中'].concat(
+      REGIONS.map(function (r) { return '停留·' + r; })
+    ).forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+    thead.appendChild(hr); tb.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    STAGES.forEach(function (name, s) {
+      var isLast = s === STAGES.length - 1;
+      var tr = document.createElement('tr');
+      [
+        (s + 1) + '. ' + name,
+        fmt(data.entered[s]),
+        s === 0 ? '–' : (data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–'),
+        isLast ? '–' : fmt(stuckOf(s)),
+        isLast ? '–' : fmt(aiOf(s))
+      ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }))
+      .forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);
+    wrap.appendChild(tb);
+  }
+
+  // ── 汇总渲染 ──────────────────────────────────────────
+  function renderAll() {
+    var data = loadData(state.range, state.region);
+    var prevEntered = STAGES.map(function () { return 0; });
+    for (var d = state.range * 2; d > state.range; d--) {
+      var ds = dstr(daysAgo(d));
+      for (var ri = 0; ri < REGIONS.length; ri++) {
+        if (state.region !== -1 && ri !== state.region) continue;
+        var e = dayRegionEntered(ds, ri);
+        for (var s = 0; s < STAGES.length; s++) prevEntered[s] += e[s];
+      }
+    }
+    renderMap(data);
+    renderKpis(data, prevEntered);
+    renderDrill();
+    renderIndex(data);
+    renderAiPanel(data);
+    renderTrend(data);
+    renderTable(data);
+  }
+
+  // ── 控件 ──────────────────────────────────────────────
+  document.querySelectorAll('#range-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.range = Number(b.dataset.range);
+      document.querySelectorAll('#range-seg button').forEach(function (x) {
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+      renderAll();
+    });
+  });
+  var sel = document.getElementById('region-sel');
+  ['全部大区'].concat(REGIONS).forEach(function (r, i) {
+    var o = document.createElement('option'); o.value = String(i - 1); o.textContent = r; sel.appendChild(o);
+  });
+  sel.addEventListener('change', function () { state.region = Number(sel.value); renderAll(); });
+  document.getElementById('tbl-toggle').addEventListener('click', function () {
+    var w = document.getElementById('tbl-wrap');
+    var open = w.hidden;
+    w.hidden = !open;
+    this.setAttribute('aria-expanded', String(open));
+    this.textContent = open ? '收起表格' : '展开表格';
+  });
+
+  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + ' (T+1)';
+  renderAll();
+})();
+</script>
+</body>
+</html>
