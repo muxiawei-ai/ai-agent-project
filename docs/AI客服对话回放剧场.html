@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 客服对话回放剧场</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .atlas {
+    --page: #f3efe2;
+    --paper: #fbf8ef;
+    --panel: #e9eef0;
+    --ink: #24272e;
+    --ink-2: #565a63;
+    --muted: #8b8574;
+    --hairline: #d9d2bf;
+    --blue: #38699f;
+    --blue-wash: rgba(56,105,159,0.22);
+    --accent: #b5502f;
+    --ai: #e0a000;
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+
+    font-family: var(--serif);
+    background: var(--page);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 30px 22px 56px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  /* ── 页头 ─────────────────────── */
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    color: var(--ink-2); text-transform: uppercase;
+  }
+  .eyebrow .no { color: var(--accent); }
+  header h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  header .rule { border: none; border-top: 1.5px solid var(--ink); margin: 14px 0 10px; }
+  header .sub {
+    display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+  }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--hairline); color: var(--muted); font-family: var(--mono); }
+
+  /* ── 控制行 ───────────────────── */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 22px 0 18px; }
+  .flabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--muted); }
+  .seg { display: inline-flex; gap: 6px; }
+  .seg button, .btn {
+    appearance: none; cursor: pointer; background: var(--paper);
+    border: 1px solid var(--hairline); border-radius: 2px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    padding: 6px 13px;
+  }
+  .seg button:hover, .btn:hover { border-color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff; }
+  .btn.primary { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff; }
+
+  /* ── 布局 ─────────────────────── */
+  .main { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+  .below { margin-top: 14px; }
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+  .fig {
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 20px 22px 16px;
+  }
+  .fig h2 { font-size: 17px; }
+  .figcap {
+    font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--ink-2);
+    margin-top: 10px; line-height: 1.6;
+  }
+  .figcap b { font-style: normal; }
+  .fig-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+  /* ── 剧场（对话舞台） ─────────── */
+  .stage { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 420px; }
+  .turn {
+    display: grid; grid-template-columns: 88px 1fr; gap: 12px;
+    padding: 10px 12px; border: 1px solid transparent; border-radius: 2px;
+    opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s;
+  }
+  .turn.shown { opacity: 1; transform: none; }
+  .turn.current { background: #fdfcf7; border-color: var(--hairline); }
+  .turn.issue { border-color: var(--accent); background: #fdfcf7; }
+  .turn .who { text-align: right; }
+  .turn .who .role {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+    padding: 2px 7px; border: 1px solid var(--hairline); border-radius: 2px; display: inline-block;
+  }
+  .turn.t-ai .who .role { border-color: var(--ai); color: var(--ink); border-top-width: 2.5px; }
+  .turn.t-customer .who .role { border-color: var(--blue); color: var(--ink); border-top-width: 2.5px; }
+  .turn .who .idx { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 5px; display: block; }
+  .turn .say { font-size: 14.5px; line-height: 1.75; }
+  .turn .meta { margin-top: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+  .turn .meta .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+  .turn .issue-note {
+    margin-top: 8px; padding: 8px 11px; border: 1px solid var(--accent); border-radius: 2px;
+    font-style: italic; font-size: 12.5px; line-height: 1.6; color: var(--ink);
+  }
+  .turn .issue-note .tag { font-family: var(--mono); font-style: normal; font-size: 10px; letter-spacing: 0.14em; color: var(--accent); margin-right: 8px; }
+  .stage-end { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--muted); text-align: center; padding: 8px 0 2px; }
+
+  /* ── 导入区 ───────────────────── */
+  .import-area { margin-top: 12px; }
+  .import-area textarea {
+    width: 100%; min-height: 150px; font-family: var(--mono); font-size: 11.5px;
+    background: #fdfcf7; border: 1px solid var(--hairline); border-radius: 2px;
+    padding: 10px; color: var(--ink); line-height: 1.6; resize: vertical;
+  }
+  .import-area .hint { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin: 8px 0; line-height: 1.7; }
+
+  /* ── 侧栏 ─────────────────────── */
+  .panel {
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 18px; display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 14px;
+  }
+  .panel .eyebrow { text-align: right; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
+  .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
+  .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+  .sbox .l { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-top: 5px; line-height: 1.5; }
+  .sbox.acc-box { border-top: 2.5px solid var(--accent); }
+  .sbox.ai-box { border-top: 2.5px solid var(--ai); }
+
+  .curve-svg { display: block; width: 100%; height: auto; background: #fdfcf7; border: 1px solid var(--hairline); }
+  .curve-svg text { font-family: var(--mono); font-size: 9px; fill: var(--muted); }
+
+  .issues { display: flex; flex-direction: column; }
+  .issue-row {
+    appearance: none; background: none; border: none; text-align: left; cursor: pointer;
+    display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: baseline;
+    padding: 6px 6px; border-bottom: 1px dotted var(--hairline); color: var(--ink); font: inherit;
+  }
+  .issue-row:hover { background: rgba(255,255,255,0.7); }
+  .issue-row .no2 { font-family: var(--mono); font-size: 10px; color: var(--accent); }
+  .issue-row .tx { font-size: 12.5px; line-height: 1.5; }
+  .issues .none { font-style: italic; font-size: 12.5px; color: var(--ink-2); padding: 6px; }
+  .note {
+    border: 1px solid var(--hairline); background: #fdfcf7; padding: 10px 12px;
+    font-style: italic; font-size: 12.5px; line-height: 1.65;
+  }
+
+  /* ── 明细表 ───────────────────── */
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 500;
+    color: var(--ink-2); border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--hairline);
+  }
+  th, td { text-align: left; padding: 7px 10px; }
+  tbody td { border-bottom: 1px dotted var(--hairline); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+  tbody td.say-cell { font-family: var(--serif); font-size: 12.5px; color: var(--ink); max-width: 420px; white-space: normal; }
+
+  footer { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; font-style: italic; }
+  footer code { font-family: var(--mono); font-style: normal; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="atlas">
+  <div class="wrap">
+
+    <header>
+      <div class="eyebrow"><span class="no">01</span> · AI CUSTOMER SERVICE · SESSION REPLAY THEATER</div>
+      <h1>AI 客服对话回放剧场：逐轮重演一场服务，看清每一步的意图与情绪</h1>
+      <hr class="rule">
+      <div class="sub">
+        <span id="session-meta">–</span>
+        <span class="badge">演示数据 · 可导入真实对话</span>
+      </div>
+    </header>
+
+    <div class="controls" role="group" aria-label="回放控制">
+      <button class="btn primary" id="play-btn" aria-pressed="false">▶ 播放</button>
+      <button class="btn" id="prev-btn">← 上一轮</button>
+      <button class="btn" id="next-btn">下一轮 →</button>
+      <button class="btn" id="reset-btn">重置</button>
+      <span class="flabel">速度 SPEED</span>
+      <div class="seg" id="speed-seg">
+        <button data-speed="0.5" aria-pressed="false">0.5×</button>
+        <button data-speed="1" aria-pressed="true">1×</button>
+        <button data-speed="2" aria-pressed="false">2×</button>
+      </div>
+      <button class="btn" id="import-btn" aria-expanded="false">导入对话…</button>
+    </div>
+
+    <div class="main">
+      <div class="fig">
+        <div class="fig-head">
+          <h2>对话舞台</h2>
+          <span class="eyebrow" id="progress-cap">–</span>
+        </div>
+        <div class="stage" id="stage" aria-live="polite"></div>
+        <div class="import-area" id="import-area" hidden>
+          <div class="hint">支持两种格式，粘贴后点「载入」：<br>
+            ① JSON 数组：[{"role":"customer"|"ai","text":"…","intent":"…","sentiment":-2…2,"issue":"…"}]（intent/sentiment/issue 可选）<br>
+            ② 纯文本：每行「客户：内容」或「AI：内容」（无标注，仅回放对话）</div>
+          <textarea id="import-text" aria-label="粘贴对话记录"></textarea>
+          <div style="margin-top:8px"><button class="btn primary" id="load-btn">载入</button></div>
+        </div>
+        <div class="figcap"><b>图 1</b> · 逐轮回放：<span style="color:var(--blue)">蓝顶标签</span>为客户、<span style="color:var(--ai)">琥珀顶标签</span>为 AI 客服；AI 轮下方标注意图识别与应对策略，客户轮标注情绪读数；<span style="color:var(--accent)">红框轮次</span>为标记出的问题轮，附评审批注。</div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow"><span class="no">02</span> · AT A GLANCE</div>
+        <div class="stats">
+          <div class="sbox"><div class="v" id="st-progress">–</div><div class="l">回放进度<br>已演 / 总轮次</div></div>
+          <div class="sbox ai-box"><div class="v" id="st-intent">–</div><div class="l">意图切换次数<br>截至当前轮</div></div>
+          <div class="sbox"><div class="v" id="st-sent">–</div><div class="l">客户当前情绪<br>-2 恼怒 … +2 满意</div></div>
+          <div class="sbox acc-box"><div class="v" id="st-issues">–</div><div class="l">问题轮次<br>截至当前轮</div></div>
+        </div>
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px"><span class="no">03</span> · SENTIMENT CURVE</div>
+          <svg class="curve-svg" id="curve" viewBox="0 0 300 110" role="img" aria-label="客户情绪随轮次变化曲线"></svg>
+          <div class="figcap"><b>图 2</b> · 客户情绪逐轮走势（随回放推进绘制）；<span style="color:var(--accent)">红点</span>为问题轮发生位置。</div>
+        </div>
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px"><span class="no">04</span> · ISSUE LIST</div>
+          <div class="issues" id="issue-list"></div>
+        </div>
+
+        <div class="note" id="verdict">–</div>
+      </div>
+    </div>
+
+    <div class="fig below">
+      <div class="fig-head">
+        <h2>对话明细</h2>
+        <button class="btn" id="tbl-toggle" aria-expanded="false">展开表格</button>
+      </div>
+      <div class="tbl-wrap" id="tbl-wrap" hidden></div>
+      <div class="figcap"><b>图 3</b> · 全部轮次的角色 / 内容 / 意图 / 情绪 / 问题标注，不依赖回放即可完整查阅。</div>
+    </div>
+
+    <footer>
+      使用说明 —— 本工具用于 UAT 评审与个案复盘：把一通 AI 客服对话（含质检标注）粘贴进「导入对话」，即可像剧本一样逐轮重演，
+      直观看到意图识别是否正确、客户情绪在哪一轮转折、问题出在哪里。标注字段（意图 / 情绪 / 问题批注）可来自质检系统导出或人工评审；
+      未标注的纯文本对话也可回放。演示数据为虚构的贷款申请咨询场景。
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 演示数据：贷款申请 · 还款卡验证受阻咨询（虚构） ──────────
+  var DEMO = [
+    { role: 'customer', text: '你好，我贷款申请到一半卡住了，还款卡验证一直不通过，试了三次了。', sentiment: -1 },
+    { role: 'ai', text: '您好，很抱歉给您带来困扰。我看到您的申请停在「还款卡验证」环节。请问您绑定的是本人名下的储蓄卡吗？信用卡和他人卡片无法通过验证。', intent: '还款卡验证失败', strategy: '定位环节 + 排查卡类型' },
+    { role: 'customer', text: '是我自己的储蓄卡，工商银行的，平时用得好好的。', sentiment: -1 },
+    { role: 'ai', text: '好的。常见原因还有：预留手机号与银行留存不一致、卡片开通了小额免密但未开通线上支付。您方便确认一下这张卡的银行预留手机号是否还是您当前使用的号码吗？', intent: '还款卡验证失败', strategy: '逐项排查 · 预留手机号' },
+    { role: 'customer', text: '哦……手机号我去年换过，银行那边可能还是旧号码。', sentiment: 0 },
+    { role: 'ai', text: '那基本可以确定原因了：验证时银行会向预留手机号发送校验，号码不一致会导致验证失败。您可以通过工行手机银行「安全中心-预留手机号维护」在线更新，或到网点办理，更新后再回来重试即可。', intent: '还款卡验证失败', strategy: '给出根因 + 自助解决路径' },
+    { role: 'customer', text: '那我的申请会不会过期作废啊？我利率是活动价锁定的。', sentiment: -1 },
+    { role: 'ai', text: '您的申请额度记录是保留的，请放心。', intent: '还款查询', strategy: '安抚', issue: '意图识别错误：客户实际在问「申请与活动利率的有效期」，被识别为泛化的还款查询，回复未回答利率是否保留，信息量不足。' },
+    { role: 'customer', text: '我问的是活动利率！客服能不能看懂我说什么？', sentiment: -2 },
+    { role: 'ai', text: '非常抱歉刚才没有说清楚。您锁定的活动利率自申请提交起 7 天内有效，只要在本周日 24:00 前完成还款卡验证，利率保持不变；申请本身 30 天内有效。给您带来的困扰再次致歉。', intent: '活动利率有效期', strategy: '致歉 + 精确答复双时限', issue: '恢复轮：本轮虽然纠正了，但情绪已跌至 -2，触发升级预警阈值，应同步主动提供人工通道。' },
+    { role: 'customer', text: '行吧，那我明天去改手机号。改完在哪里继续操作？', sentiment: 0 },
+    { role: 'ai', text: '更新预留手机号后，打开 App 首页「我的申请」，点击进行中的这笔申请即可从「还款卡验证」继续，之前填写的资料都在。如果验证再次失败，可以直接回复「人工」，我为您转接专员协助处理。', intent: '流程续办指引', strategy: '路径指引 + 兜底人工通道' },
+    { role: 'customer', text: '好的，清楚了，谢谢。', sentiment: 1 },
+    { role: 'ai', text: '不客气！已为您在工单备注了「预留手机号待更新」，您明天回来时无需重复说明情况。祝您顺利，再见。', intent: '结束语', strategy: '留痕交接 + 降低复述成本' },
+    { role: 'customer', text: '这个备注功能不错，再见。', sentiment: 2 }
+  ];
+
+  var turns = DEMO.slice();
+  var state = { pos: 0, playing: false, speed: 1, timer: null };   // pos = 已展示轮数
+
+  function fmtSent(v) { return v > 0 ? '+' + v : String(v); }
+  function sentColor(v) { return v <= -2 ? cssv('--accent') : v < 1 ? cssv('--muted') : cssv('--blue'); }
+  function cssv(name) { return getComputedStyle(document.querySelector('.atlas')).getPropertyValue(name).trim(); }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, attrs) { var e = document.createElementNS(NS, n); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+  // ── 舞台 ──────────────────────────────────────────────
+  function buildStage() {
+    var stage = document.getElementById('stage'); stage.textContent = '';
+    turns.forEach(function (t, i) {
+      var row = document.createElement('div');
+      row.className = 'turn t-' + t.role + (t.issue ? ' issue' : '');
+      row.id = 'turn-' + i;
+
+      var who = document.createElement('div'); who.className = 'who';
+      var role = document.createElement('span'); role.className = 'role';
+      role.textContent = t.role === 'ai' ? 'AI 客服' : '客户';
+      who.appendChild(role);
+      var idx = document.createElement('span'); idx.className = 'idx'; idx.textContent = '第 ' + (i + 1) + ' 轮';
+      who.appendChild(idx);
+      row.appendChild(who);
+
+      var body = document.createElement('div');
+      var say = document.createElement('div'); say.className = 'say'; say.textContent = t.text;
+      body.appendChild(say);
+
+      var meta = document.createElement('div'); meta.className = 'meta';
+      if (t.role === 'ai') {
+        if (t.intent) { var m1 = document.createElement('span'); m1.textContent = '意图 · ' + t.intent; meta.appendChild(m1); }
+        if (t.strategy) { var m2 = document.createElement('span'); m2.textContent = '策略 · ' + t.strategy; meta.appendChild(m2); }
+      } else if (typeof t.sentiment === 'number') {
+        var m3 = document.createElement('span');
+        var dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = sentColor(t.sentiment);
+        m3.appendChild(dot);
+        m3.appendChild(document.createTextNode('情绪 ' + fmtSent(t.sentiment)));
+        meta.appendChild(m3);
+      }
+      if (meta.childNodes.length) body.appendChild(meta);
+
+      if (t.issue) {
+        var note = document.createElement('div'); note.className = 'issue-note';
+        var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'ISSUE';
+        note.appendChild(tag);
+        note.appendChild(document.createTextNode(t.issue));
+        body.appendChild(note);
+      }
+      row.appendChild(body);
+      stage.appendChild(row);
+    });
+    var end = document.createElement('div'); end.className = 'stage-end'; end.id = 'stage-end';
+    end.hidden = true; end.textContent = '— 回放结束 · END OF SESSION —';
+    stage.appendChild(end);
+  }
+
+  // ── 情绪曲线 ──────────────────────────────────────────
+  function renderCurve() {
+    var svg = document.getElementById('curve'); svg.textContent = '';
+    var W = 300, H = 110, L = 24, R = 8, T = 10, B = 18;
+    var custIdx = [];   // [turnIndex, sentiment]
+    turns.forEach(function (t, i) { if (t.role === 'customer' && typeof t.sentiment === 'number') custIdx.push([i, t.sentiment]); });
+    if (!custIdx.length) return;
+    function X(i) { return L + (custIdx.length === 1 ? 0.5 : i / (custIdx.length - 1)) * (W - L - R); }
+    function Y(v) { return T + (1 - (v + 2) / 4) * (H - T - B); }
+    [-2, 0, 2].forEach(function (v) {
+      svg.appendChild(el('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: cssv('--hairline'), 'stroke-width': v === 0 ? 1.2 : 1 }));
+      var t = el('text', { x: L - 5, y: Y(v) + 3, 'text-anchor': 'end' }); t.textContent = fmtSent(v); svg.appendChild(t);
+    });
+    var shown = custIdx.filter(function (p) { return p[0] < state.pos; });
+    if (shown.length > 1) {
+      var d = shown.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p[1]).toFixed(1); }).join(' ');
+      svg.appendChild(el('path', { d: d, fill: 'none', stroke: cssv('--blue'), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    }
+    shown.forEach(function (p, i) {
+      var isIssueNear = turns[p[0]].sentiment <= -2;
+      svg.appendChild(el('circle', {
+        cx: X(i), cy: Y(p[1]), r: 3.5,
+        fill: isIssueNear ? cssv('--accent') : cssv('--blue'),
+        stroke: '#fdfcf7', 'stroke-width': 1.5
+      }));
+    });
+  }
+
+  // ── 侧栏统计与问题清单 ────────────────────────────────
+  function renderPanel() {
+    document.getElementById('st-progress').textContent = state.pos + ' / ' + turns.length;
+    document.getElementById('progress-cap').textContent = ('ROUND ' + state.pos + ' / ' + turns.length).toUpperCase();
+
+    var intents = [], issues = 0, lastSent = null;
+    for (var i = 0; i < state.pos; i++) {
+      var t = turns[i];
+      if (t.role === 'ai' && t.intent && (!intents.length || intents[intents.length - 1] !== t.intent)) intents.push(t.intent);
+      if (t.issue) issues++;
+      if (t.role === 'customer' && typeof t.sentiment === 'number') lastSent = t.sentiment;
+    }
+    document.getElementById('st-intent').textContent = intents.length ? intents.length - 1 : 0;
+    var sentEl = document.getElementById('st-sent');
+    sentEl.textContent = lastSent === null ? '–' : fmtSent(lastSent);
+    sentEl.style.color = lastSent !== null && lastSent <= -2 ? cssv('--accent') : '';
+    document.getElementById('st-issues').textContent = issues;
+
+    var list = document.getElementById('issue-list'); list.textContent = '';
+    var any = false;
+    turns.forEach(function (t, i) {
+      if (!t.issue || i >= state.pos) return;
+      any = true;
+      var row = document.createElement('button'); row.className = 'issue-row';
+      var no = document.createElement('span'); no.className = 'no2'; no.textContent = 'R' + (i + 1); row.appendChild(no);
+      var tx = document.createElement('span'); tx.className = 'tx'; tx.textContent = t.issue.split('：')[0]; row.appendChild(tx);
+      row.addEventListener('click', function () {
+        document.getElementById('turn-' + i).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      list.appendChild(row);
+    });
+    if (!any) {
+      var none = document.createElement('div'); none.className = 'none';
+      none.textContent = state.pos ? '截至当前轮未出现问题标记。' : '尚未开始回放。';
+      list.appendChild(none);
+    }
+
+    // 结论批注
+    var verdict = document.getElementById('verdict');
+    if (state.pos >= turns.length) {
+      var totalIssues = turns.filter(function (t) { return t.issue; }).length;
+      var sents = turns.filter(function (t) { return t.role === 'customer' && typeof t.sentiment === 'number'; }).map(function (t) { return t.sentiment; });
+      var minS = Math.min.apply(null, sents), endS = sents[sents.length - 1];
+      verdict.textContent = '本场复盘：共 ' + turns.length + ' 轮，问题轮 ' + totalIssues + ' 个；客户情绪最低到 ' + fmtSent(minS) + '，收尾回升至 ' + fmtSent(endS) + '——问题被恢复轮挽回，但意图识别错误（R8）值得进入训练集。';
+    } else {
+      verdict.textContent = '回放进行中——问题轮与情绪拐点会在演到时标记出来；结论批注在回放结束后给出。';
+    }
+  }
+
+  // ── 明细表 ────────────────────────────────────────────
+  function renderTable() {
+    var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
+    var tb = document.createElement('table');
+    var thead = document.createElement('thead'); var hr = document.createElement('tr');
+    ['轮', '角色', '内容', '意图 / 策略', '情绪', '问题标注'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
+    });
+    thead.appendChild(hr); tb.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    turns.forEach(function (t, i) {
+      var tr = document.createElement('tr');
+      function td(txt, cls) { var d = document.createElement('td'); if (cls) d.className = cls; d.textContent = txt; tr.appendChild(d); }
+      td(String(i + 1));
+      td(t.role === 'ai' ? 'AI' : '客户');
+      td(t.text, 'say-cell');
+      td(t.role === 'ai' ? [t.intent, t.strategy].filter(Boolean).join(' / ') || '–' : '–');
+      td(t.role === 'customer' && typeof t.sentiment === 'number' ? fmtSent(t.sentiment) : '–');
+      td(t.issue || '–', t.issue ? 'say-cell' : undefined);
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);
+    wrap.appendChild(tb);
+  }
+
+  // ── 回放引擎 ──────────────────────────────────────────
+  function show(pos, scroll) {
+    state.pos = Math.max(0, Math.min(turns.length, pos));
+    turns.forEach(function (_, i) {
+      var row = document.getElementById('turn-' + i);
+      row.classList.toggle('shown', i < state.pos);
+      row.classList.toggle('current', i === state.pos - 1);
+    });
+    document.getElementById('stage-end').hidden = state.pos < turns.length;
+    if (scroll !== false && state.pos > 0) {
+      document.getElementById('turn-' + (state.pos - 1)).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    renderPanel(); renderCurve();
+    if (state.pos >= turns.length) stop();
+  }
+  function tick() {
+    if (state.pos >= turns.length) { stop(); return; }
+    show(state.pos + 1);
+  }
+  function play() {
+    if (state.pos >= turns.length) show(0, false);
+    state.playing = true;
+    document.getElementById('play-btn').textContent = '❚❚ 暂停';
+    document.getElementById('play-btn').setAttribute('aria-pressed', 'true');
+    tick();
+    state.timer = setInterval(tick, 1700 / state.speed);
+  }
+  function stop() {
+    state.playing = false;
+    clearInterval(state.timer);
+    document.getElementById('play-btn').textContent = '▶ 播放';
+    document.getElementById('play-btn').setAttribute('aria-pressed', 'false');
+  }
+
+  // ── 导入解析 ──────────────────────────────────────────
+  function parseImport(raw) {
+    raw = raw.trim();
+    if (!raw) return null;
+    if (raw[0] === '[') {
+      try {
+        var arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return null;
+        var ok = arr.filter(function (t) { return t && (t.role === 'ai' || t.role === 'customer') && typeof t.text === 'string'; });
+        return ok.length ? ok : null;
+      } catch (e) { return null; }
+    }
+    var out = [];
+    raw.split('\n').forEach(function (line) {
+      var m = line.match(/^\s*(客户|用户|AI|ai|客服)\s*[:：]\s*(.+)$/);
+      if (m) out.push({ role: (m[1] === '客户' || m[1] === '用户') ? 'customer' : 'ai', text: m[2].trim() });
+    });
+    return out.length ? out : null;
+  }
+
+  // ── 控件 ──────────────────────────────────────────────
+  document.getElementById('play-btn').addEventListener('click', function () { state.playing ? stop() : play(); });
+  document.getElementById('next-btn').addEventListener('click', function () { stop(); show(state.pos + 1); });
+  document.getElementById('prev-btn').addEventListener('click', function () { stop(); show(state.pos - 1); });
+  document.getElementById('reset-btn').addEventListener('click', function () { stop(); show(0, false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  document.querySelectorAll('#speed-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.speed = Number(b.dataset.speed);
+      document.querySelectorAll('#speed-seg button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      if (state.playing) { clearInterval(state.timer); state.timer = setInterval(tick, 1700 / state.speed); }
+    });
+  });
+  document.getElementById('import-btn').addEventListener('click', function () {
+    var area = document.getElementById('import-area');
+    var open = area.hidden;
+    area.hidden = !open;
+    this.setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('load-btn').addEventListener('click', function () {
+    var parsed = parseImport(document.getElementById('import-text').value);
+    if (!parsed) {
+      document.getElementById('import-text').setAttribute('aria-invalid', 'true');
+      document.getElementById('import-text').placeholder = '无法解析——请检查格式（JSON 数组或「客户：/AI：」逐行文本）';
+      return;
+    }
+    turns = parsed;
+    stop();
+    init();
+    document.getElementById('import-area').hidden = true;
+    document.getElementById('import-btn').setAttribute('aria-expanded', 'false');
+  });
+  document.getElementById('tbl-toggle').addEventListener('click', function () {
+    var w = document.getElementById('tbl-wrap');
+    var open = w.hidden;
+    w.hidden = !open;
+    this.setAttribute('aria-expanded', String(open));
+    this.textContent = open ? '收起表格' : '展开表格';
+  });
+
+  function init() {
+    var aiN = turns.filter(function (t) { return t.role === 'ai'; }).length;
+    document.getElementById('session-meta').textContent =
+      '本场对话 ' + turns.length + ' 轮 · AI ' + aiN + ' 轮 / 客户 ' + (turns.length - aiN) + ' 轮';
+    buildStage(); renderTable(); show(0, false);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
