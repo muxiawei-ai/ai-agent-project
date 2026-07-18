@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户旅程作战室</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .atlas {
+    --page: #f3efe2; --paper: #fbf8ef; --panel: #e9eef0;
+    --ink: #24272e; --ink-2: #565a63; --muted: #8b8574; --hairline: #d9d2bf;
+    --blue: #38699f; --blue-wash: rgba(56,105,159,0.22);
+    --accent: #b5502f; --ai: #e0a000;
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    font-family: var(--serif); background: var(--page); color: var(--ink);
+    min-height: 100vh; padding: 34px 22px 56px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-2); text-transform: uppercase; }
+  .eyebrow .no { color: var(--accent); }
+  header h1 { font-size: 32px; font-weight: 700; letter-spacing: 0.02em; }
+  header .rule { border: none; border-top: 1.5px solid var(--ink); margin: 14px 0 10px; }
+  header .sub { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+
+  .sect { margin-top: 26px; }
+  .sect > .eyebrow { margin-bottom: 12px; }
+
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .tools { grid-template-columns: 1fr; } }
+  .tool {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 18px 20px 14px; position: relative;
+  }
+  .tool:hover { border-color: var(--ink-2); }
+  .tool .tno { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--accent); }
+  .tool .trole {
+    position: absolute; top: 18px; right: 20px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em;
+    padding: 2px 8px; border: 1px solid var(--hairline); border-radius: 2px; color: var(--ink-2);
+  }
+  .tool.r-now .trole { border-top: 2.5px solid var(--blue); }
+  .tool.r-past .trole { border-top: 2.5px solid var(--ai); }
+  .tool.r-future .trole { border-top: 2.5px solid var(--blue); }
+  .tool.r-attack .trole { border-top: 2.5px solid var(--accent); }
+  .tool h2 { font-size: 18px; margin-top: 7px; }
+  .tool .when { font-style: italic; font-size: 13px; color: var(--ink-2); line-height: 1.7; margin-top: 7px; min-height: 44px; }
+  .tool .facts { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .tool .go { font-family: var(--mono); font-size: 11px; color: var(--ink); margin-top: 12px; border-top: 1px dotted var(--hairline); padding-top: 9px; }
+
+  .docs { background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px; padding: 8px 20px; }
+  .doc-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline;
+    padding: 10px 2px; border-bottom: 1px dotted var(--hairline); text-decoration: none; color: inherit;
+  }
+  .doc-row:last-child { border-bottom: none; }
+  .doc-row:hover { background: rgba(255,255,255,0.7); }
+  .doc-row .dn { font-size: 14px; }
+  .doc-row .dn small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 0.06em; }
+  .doc-row .dt { font-family: var(--mono); font-size: 10px; color: var(--ink-2); }
+
+  .infra { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .infra { grid-template-columns: 1fr; } }
+  .ibox { background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px; padding: 14px 17px; }
+  .ibox .in { font-size: 14.5px; font-weight: 700; }
+  .ibox .id { font-size: 12.5px; color: var(--ink-2); font-style: italic; line-height: 1.65; margin-top: 5px; }
+  .ibox .im { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 7px; }
+
+  .figcap { font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--ink-2); margin-top: 12px; line-height: 1.6; }
+  .figcap b { font-style: normal; }
+  footer { margin-top: 28px; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="atlas">
+  <div class="wrap">
+
+    <header>
+      <div class="eyebrow"><span class="no">00</span> · LOAN APPLICATION · CUSTOMER JOURNEY WAR ROOM</div>
+      <h1>客户旅程作战室</h1>
+      <hr class="rule">
+      <div class="sub">
+        <span>看现状 · 复盘过去 · 推演未来 · 压力测试 · 实战训练</span>
+        <span id="spine-ver">数据脊柱 · 未接入</span>
+      </div>
+    </header>
+
+    <div class="sect">
+      <div class="eyebrow"><span class="no">01</span> · TOOLS</div>
+      <div class="tools">
+        <a class="tool r-now" href="贷款申请客户旅程看板.html">
+          <span class="tno">T1</span><span class="trole">看现状</span>
+          <h2>贷款申请客户旅程看板</h2>
+          <div class="when">客户此刻在旅途的哪一站？——旅程地图首屏呈现七站客流，站点圆=当前停留，红色=最大摩擦点，点击按大区下钻。</div>
+          <div class="facts"><span>七站旅程地图</span><span>停留率摩擦点</span><span>AI 协助弧</span><span>每日 T+1</span></div>
+          <div class="go">打开看板 →</div>
+        </a>
+        <a class="tool r-past" href="AI客服对话回放剧场.html">
+          <span class="tno">T2</span><span class="trole">复盘过去</span>
+          <h2>AI 客服对话回放剧场</h2>
+          <div class="when">这场对话到底哪里出了问题？——把带质检标注的对话像剧本一样逐轮重演，意图、情绪、问题轮一目了然。</div>
+          <div class="facts"><span>逐轮回放</span><span>情绪曲线</span><span>问题轮批注</span><span>可导入真实对话</span></div>
+          <div class="go">打开剧场 →</div>
+        </a>
+        <a class="tool r-future" href="客户旅程数字孪生沙盘.html">
+          <span class="tno">T3</span><span class="trole">推演未来</span>
+          <h2>客户旅程数字孪生沙盘</h2>
+          <div class="when">这个改动值不值得上？——六类虚拟客户同批对照仿真，拨动策略杠杆，改版之前先看推演结果。</div>
+          <div class="facts"><span>六类画像</span><span>三个策略杠杆</span><span>A/B 同批对照</span><span>N=800</span></div>
+          <div class="go">打开沙盘 →</div>
+        </a>
+        <a class="tool r-attack" href="红队客服测试台.html">
+          <span class="tno">T4</span><span class="trole">压力测试</span>
+          <h2>红队客服测试台</h2>
+          <div class="when">上线前 AI 扛得住最难缠的客户吗？——五类攻击面对抗用例，失守轮红框批注机理，附批量扩产提示词。</div>
+          <div class="facts"><span>五类攻击面</span><span>10 个种子用例</span><span>覆盖矩阵</span><span>回归测试库</span></div>
+          <div class="go">打开测试台 →</div>
+        </a>
+        <a class="tool r-past" href="影子客服训练营.html" style="grid-column: 1 / -1;">
+          <span class="tno">T5</span><span class="trole">实战训练</span>
+          <h2>影子客服训练营</h2>
+          <div class="when">轮到你了，你会怎么回？——真实困难场景逐题闯关：先自己写应答，再对照参考答案与失守案例自评打分。新人上岗与质检校准皆宜。</div>
+          <div class="facts"><span>六道实战题</span><span>四维自评</span><span>含失守教学</span><span>约 20 分钟</span></div>
+          <div class="go">进入训练营 →</div>
+        </a>
+      </div>
+      <div class="figcap"><b>图 1</b> · 五件工具构成闭环：看板发现摩擦 → 剧场定位问题 → 沙盘推演对策 → 红队验证防线 → 训练营把经验传给人。</div>
+    </div>
+
+    <div class="sect">
+      <div class="eyebrow"><span class="no">02</span> · DOCUMENTS</div>
+      <div class="docs">
+        <a class="doc-row" href="AI客服项目介绍.html">
+          <span class="dn">AI 客服项目介绍<small>项目背景 · 能力边界 · 横版报告</small></span>
+          <span class="dt">HTML</span>
+        </a>
+        <a class="doc-row" href="AI客服-UAT测试邀请说明.html">
+          <span class="dn">UAT 测试邀请说明<small>参与方式 · 测试范围 · PPT 风格</small></span>
+          <span class="dt">HTML / PPTX</span>
+        </a>
+        <a class="doc-row" href="AI客服-UAT测试方案-增强版.md">
+          <span class="dn">UAT 测试方案（增强版）<small>用例设计 · 验收标准</small></span>
+          <span class="dt">MARKDOWN</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="eyebrow"><span class="no">03</span> · INFRASTRUCTURE</div>
+      <div class="infra">
+        <div class="ibox">
+          <div class="in">atlas-style 风格技能</div>
+          <div class="id">本页与全部工具共用的"科研图鉴"视觉规范——三色语义配色（已过色觉校验）、衬线/等宽层级、图注语法。仓库协作者的 Claude 会自动应用。</div>
+          <div class="im">.claude/skills/atlas-style/</div>
+        </div>
+        <div class="ibox">
+          <div class="in">数据脊柱 spine.js</div>
+          <div class="id">全部工具共享的数据源：旅程参数、示例对话。接入真实数据只需替换这一个文件，各工具在缺失时回落到内置演示数据。</div>
+          <div class="im">docs/data/spine.js · <span id="spine-stat">检测中…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      作战室由五件自包含 HTML 工具、三份项目文档与两件基础设施组成，全部可离线打开、可单文件分发。
+      工具中的演示数据均为虚构；接入生产时按各页脚说明替换数据源。
+    </footer>
+
+  </div>
+</div>
+
+<script src="data/spine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var s = window.JOURNEY_SPINE;
+  document.getElementById('spine-ver').textContent = s ? ('数据脊柱 · ' + s.version) : '数据脊柱 · 未接入（各工具使用内置演示数据）';
+  document.getElementById('spine-stat').textContent = s ? ('已接入 · ' + s.version) : '未找到（工具回落内置数据）';
+})();
+</script>
+</body>
+</html>

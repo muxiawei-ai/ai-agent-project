@@ -205,12 +205,15 @@
   </div>
 </div>
 
+<script src="data/spine.js"></script>
 <script>
 (function () {
   'use strict';
 
-  var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
-  var CONV = [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];   // 基准转化率（与旅程看板一致）
+  // 数据脊柱优先：与旅程看板共用同一份 stages/conv，保证两边口径一致
+  var SPINE_J = (window.JOURNEY_SPINE && window.JOURNEY_SPINE.journey) || {};
+  var STAGES = SPINE_J.stages || ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
+  var CONV = SPINE_J.conv || [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];
   var N = 800;
 
   // 画像：digital 操作熟练 / patience 耐心 / price 价格敏感 / trust 信任
@@ -496,6 +499,7 @@
     run();
   });
   document.getElementById('n-lab').textContent = String(N);
+  if (window.JOURNEY_SPINE) document.querySelector('.badge').textContent = '参数化行为模型 · 脊柱 ' + window.JOURNEY_SPINE.version;
 
   run();
 })();
