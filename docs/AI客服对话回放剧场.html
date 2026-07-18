@@ -249,11 +249,13 @@
   </div>
 </div>
 
+<script src="data/spine.js"></script>
 <script>
 (function () {
   'use strict';
 
-  // ── 演示数据：贷款申请 · 还款卡验证受阻咨询（虚构） ──────────
+  // ── 演示数据：贷款申请 · 还款卡验证受阻咨询（虚构）；
+  //    数据脊柱存在时优先加载 spine.sessions[0] ──────────
   var DEMO = [
     { role: 'customer', text: '你好，我贷款申请到一半卡住了，还款卡验证一直不通过，试了三次了。', sentiment: -1 },
     { role: 'ai', text: '您好，很抱歉给您带来困扰。我看到您的申请停在「还款卡验证」环节。请问您绑定的是本人名下的储蓄卡吗？信用卡和他人卡片无法通过验证。', intent: '还款卡验证失败', strategy: '定位环节 + 排查卡类型' },
@@ -272,7 +274,9 @@
     { role: 'customer', text: '这个备注功能不错，再见。', sentiment: 2 }
   ];
 
-  var turns = DEMO.slice();
+  var SPINE_S = (window.JOURNEY_SPINE && window.JOURNEY_SPINE.sessions && window.JOURNEY_SPINE.sessions[0]) || null;
+  var turns = (SPINE_S ? SPINE_S.turns : DEMO).slice();
+  var source = SPINE_S ? '脊柱 ' + SPINE_S.id : '内置演示';
   var state = { pos: 0, playing: false, speed: 1, timer: null };   // pos = 已展示轮数
 
   function fmtSent(v) { return v > 0 ? '+' + v : String(v); }
@@ -511,6 +515,7 @@
       return;
     }
     turns = parsed;
+    source = '导入对话';
     stop();
     init();
     document.getElementById('import-area').hidden = true;
@@ -527,7 +532,7 @@
   function init() {
     var aiN = turns.filter(function (t) { return t.role === 'ai'; }).length;
     document.getElementById('session-meta').textContent =
-      '本场对话 ' + turns.length + ' 轮 · AI ' + aiN + ' 轮 / 客户 ' + (turns.length - aiN) + ' 轮';
+      '本场对话 ' + turns.length + ' 轮 · AI ' + aiN + ' 轮 / 客户 ' + (turns.length - aiN) + ' 轮 · 数据源 ' + source;
     buildStage(); renderTable(); show(0, false);
   }
   init();

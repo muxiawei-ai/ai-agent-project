@@ -296,16 +296,18 @@
 
 <div class="tip" id="tip"></div>
 
+<script src="data/spine.js"></script>
 <script>
 (function () {
   'use strict';
 
-  // ── 常量 ──────────────────────────────────────────────
-  var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
-  var REGIONS = ['华东', '华南', '华北', '华中', '西南', '西北'];
-  var REGION_W = [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];      // 各大区体量权重
-  var CONV = [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];        // 相邻站点基准转化率（还款卡验证环节通过率最低）
-  var BASE_DAILY = 620;                                    // 全国日均申请发送基数
+  // ── 常量：数据脊柱优先（docs/data/spine.js），缺失时回落内置演示参数 ──
+  var SPINE_J = (window.JOURNEY_SPINE && window.JOURNEY_SPINE.journey) || {};
+  var STAGES = SPINE_J.stages || ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
+  var REGIONS = SPINE_J.regions || ['华东', '华南', '华北', '华中', '西南', '西北'];
+  var REGION_W = SPINE_J.regionWeights || [1.35, 1.15, 1.0, 0.85, 0.7, 0.45];
+  var CONV = SPINE_J.conv || [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];
+  var BASE_DAILY = SPINE_J.baseDaily || 620;
 
   // ── 模拟数据（按日期种子，每天刷新出新数值；生产环境替换为 API） ──
   function hashSeed(str) {
@@ -937,7 +939,8 @@
     this.textContent = open ? '收起表格' : '展开表格';
   });
 
-  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + ' (T+1)';
+  document.getElementById('refresh-at').textContent = '数据截至 ' + dstr(daysAgo(1)) + ' (T+1)' +
+    (window.JOURNEY_SPINE ? ' · 脊柱 ' + window.JOURNEY_SPINE.version : ' · 内置演示参数');
   renderAll();
 })();
 </script>
