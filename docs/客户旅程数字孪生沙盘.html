@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户旅程数字孪生沙盘</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .atlas {
+    --page: #f3efe2; --paper: #fbf8ef; --panel: #e9eef0;
+    --ink: #24272e; --ink-2: #565a63; --muted: #8b8574; --hairline: #d9d2bf;
+    --blue: #38699f; --blue-wash: rgba(56,105,159,0.22);
+    --accent: #b5502f; --ai: #e0a000;
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    font-family: var(--serif); background: var(--page); color: var(--ink);
+    min-height: 100vh; padding: 30px 22px 56px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-2); text-transform: uppercase; }
+  .eyebrow .no { color: var(--accent); }
+  header h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+  header .rule { border: none; border-top: 1.5px solid var(--ink); margin: 14px 0 10px; }
+  header .sub { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--hairline); color: var(--muted); font-family: var(--mono); }
+
+  .fig { background: var(--paper); border: 1px solid var(--hairline); border-radius: 3px; padding: 20px 22px 16px; }
+  .fig h2 { font-size: 17px; }
+  .figcap { font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--ink-2); margin-top: 10px; line-height: 1.6; }
+  .figcap b { font-style: normal; }
+  .fig-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+  .main { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+  .below { margin-top: 14px; }
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+  /* ── 策略控制台 ───────────────── */
+  .levers { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .lever {
+    display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center;
+    background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 13px;
+  }
+  .lever .sw {
+    appearance: none; cursor: pointer; font: inherit; font-family: var(--mono); font-size: 11px;
+    border: 1px solid var(--hairline); border-radius: 2px; background: var(--paper);
+    padding: 5px 12px; color: var(--ink-2); white-space: nowrap;
+  }
+  .lever .sw[aria-pressed="true"] { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff; }
+  .lever .ln { font-size: 13.5px; font-weight: 700; }
+  .lever .ld { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+  .lever input[type="range"] { width: 100%; accent-color: var(--ai); }
+  .lever .lv { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 700; }
+  .run-row { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  .btn {
+    appearance: none; cursor: pointer; background: var(--paper);
+    border: 1px solid var(--hairline); border-radius: 2px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2); padding: 7px 15px;
+  }
+  .btn:hover { border-color: var(--ink-2); }
+  .btn.primary { border: 1.5px solid var(--ink); color: var(--ink); font-weight: 700; background: #fff; }
+  .flabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; color: var(--muted); }
+
+  /* ── 旅程对照条 ───────────────── */
+  .journey-svg { display: block; width: 100%; height: auto; margin-top: 10px; }
+  .journey-svg text { font-family: var(--mono); font-size: 10px; fill: var(--ink-2); }
+  .journey-svg .t-serif { font-family: var(--serif); font-size: 12.5px; fill: var(--ink); }
+  .journey-svg .nnum { font-size: 12px; font-weight: 700; fill: var(--ink); }
+
+  /* ── 侧栏 ─────────────────────── */
+  .panel {
+    background: var(--panel); border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 18px; display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 14px;
+  }
+  .panel .eyebrow { text-align: right; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
+  .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
+  .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+  .sbox .l { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-top: 5px; line-height: 1.5; }
+  .sbox.blue-box { border-top: 2.5px solid var(--blue); }
+  .sbox.ai-box { border-top: 2.5px solid var(--ai); }
+  .note { border: 1px solid var(--hairline); background: #fdfcf7; padding: 10px 12px; font-style: italic; font-size: 12.5px; line-height: 1.65; }
+  .note .nm { font-family: var(--mono); font-style: normal; font-size: 10.5px; }
+
+  /* ── 原因条形 ─────────────────── */
+  .reasons { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .rrow { display: grid; grid-template-columns: 92px 1fr; gap: 9px; align-items: center; padding: 3px 2px; }
+  .rrow .rn { font-size: 12.5px; }
+  .rrow .rb { display: flex; align-items: center; height: 14px; }
+  .rrow .bar { height: 14px; border-radius: 0 4px 4px 0; background: var(--blue); min-width: 1px; }
+  .rrow .bv { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-left: 7px; white-space: nowrap; }
+
+  /* ── 画像表 ───────────────────── */
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  thead th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; font-weight: 500; color: var(--ink-2); border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--hairline); }
+  th, td { text-align: right; padding: 7px 10px; white-space: nowrap; }
+  tbody td { border-bottom: 1px dotted var(--hairline); font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody td:first-child { font-family: var(--serif); font-size: 13px; color: var(--ink); }
+  td .up { color: var(--blue); font-weight: 700; }
+  td .down { color: var(--accent); font-weight: 700; }
+  tbody td .pdesc { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--muted); white-space: normal; max-width: 210px; }
+
+  footer { margin-top: 24px; font-size: 12.5px; color: var(--ink-2); line-height: 1.9; font-style: italic; }
+  footer code { font-family: var(--mono); font-style: normal; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="atlas">
+  <div class="wrap">
+
+    <header>
+      <div class="eyebrow"><span class="no">01</span> · LOAN APPLICATION · DIGITAL TWIN SANDBOX</div>
+      <h1>客户旅程数字孪生沙盘：改版先推演，再上线</h1>
+      <hr class="rule">
+      <div class="sub">
+        <span id="meta">–</span>
+        <span class="badge">参数化行为模型 · 演示原型</span>
+      </div>
+    </header>
+
+    <div class="main">
+      <div>
+        <div class="fig">
+          <div class="fig-head">
+            <h2>策略控制台</h2>
+            <span class="eyebrow">02 · POLICY LEVERS</span>
+          </div>
+          <div class="levers">
+            <div class="lever">
+              <button class="sw" id="lv-guide" aria-pressed="false">关</button>
+              <span class="ln">① 还款卡验证引导优化</span>
+              <div class="ld">验证页增加逐步引导与常见失败原因自查（预留手机号、卡类型）。对数字操作不熟练的客户提升最大。</div>
+            </div>
+            <div class="lever">
+              <button class="sw" id="lv-countdown" aria-pressed="false">关</button>
+              <span class="ln">② 活动利率倒计时提示</span>
+              <div class="ld">全流程展示"活动利率剩余 N 天"。对价格敏感客户形成紧迫感、加速推进；但对低耐心客户可能构成压力、加剧放弃——是一把双刃剑。</div>
+            </div>
+            <div class="lever">
+              <span class="lv" id="cov-val">40%</span>
+              <span class="ln">③ AI 助手主动介入覆盖率</span>
+              <div class="ld">对停留客户主动触达协助的比例（当前现状为 40%）。拖动滑杆推演加大或收缩 AI 投入的效果。
+                <input type="range" id="lv-cov" min="0" max="100" step="5" value="40" aria-label="AI 主动介入覆盖率">
+              </div>
+            </div>
+          </div>
+          <div class="run-row">
+            <button class="btn primary" id="run-btn">▶ 运行推演</button>
+            <button class="btn" id="reseed-btn">换一批客户</button>
+            <span class="flabel" id="run-meta">–</span>
+          </div>
+          <div class="figcap"><b>图 1</b> · 每次推演放行 <span id="n-lab">800</span> 名虚拟客户走完七站旅程：基线组按现状参数（三项策略均为现状值），方案组按上方控制台配置；两组使用同一批客户，差异全部来自策略本身。</div>
+        </div>
+
+        <div class="fig below">
+          <div class="fig-head">
+            <h2>旅程对照：基线 vs 方案</h2>
+            <span class="eyebrow">03 · A/B FUNNEL</span>
+          </div>
+          <svg class="journey-svg" id="journey" viewBox="0 0 920 430" role="img" aria-label="基线与方案的逐站到达人数对照"></svg>
+          <div class="figcap"><b>图 2</b> · 每站两条到达条：上为<span style="color:var(--muted)">基线（灰蓝）</span>、下为<span style="color:var(--blue)">方案（石板蓝）</span>；站名下方为方案相对基线的到达增减。<span style="color:var(--accent)">红色站名</span>为基线流失最重的一站。</div>
+        </div>
+
+        <div class="fig below">
+          <div class="fig-head">
+            <h2>画像明细</h2>
+            <span class="eyebrow">05 · PERSONA BREAKDOWN</span>
+          </div>
+          <div class="tbl-wrap" id="persona-tbl"></div>
+          <div class="figcap"><b>图 4</b> · 六类客户画像在两组中的端到端转化对比；<span style="color:var(--blue)">蓝色 Δ</span>为方案提升、<span style="color:var(--accent)">红色 Δ</span>为方案损伤——同一策略对不同画像可能一升一降，这正是沙盘要暴露的。</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow"><span class="no">04</span> · OUTCOME</div>
+        <div class="stats">
+          <div class="sbox"><div class="v" id="st-base">–</div><div class="l">基线端到端转化</div></div>
+          <div class="sbox blue-box"><div class="v" id="st-plan">–</div><div class="l">方案端到端转化</div></div>
+          <div class="sbox ai-box"><div class="v" id="st-delta">–</div><div class="l">转化变化<br>（百分点）</div></div>
+          <div class="sbox"><div class="v" id="st-saved">–</div><div class="l">多放款人数<br>/ 本批客户</div></div>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">· QUIT REASONS（方案组）</div>
+          <div class="reasons" id="reasons"></div>
+          <div class="figcap"><b>图 3</b> · 方案组中途放弃客户的主导原因分布。</div>
+        </div>
+        <div class="note" id="verdict">配置策略后点「运行推演」。</div>
+      </div>
+    </div>
+
+    <footer>
+      模型说明 —— 本沙盘为参数化行为模型原型：每位虚拟客户由画像抽样生成（操作熟练度 / 耐心 / 价格敏感 / 信任四维特质），
+      逐站通过概率 = 基准转化率 + 特质敏感度修正 + 策略效应，随机种子固定保证同批客户可复现对照。
+      各画像权重与敏感度为演示假设，接入真实数据后应以分群统计回填校准；下一步演进方向是把参数化客户替换为
+      <code>LLM 客户代理</code>——每位虚拟客户以真实对话行为走完旅程，可推演话术级别的改动。策略效应量为假设值，推演结果用于比较方向与相对幅度，不构成绝对预测。
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STAGES = ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'];
+  var CONV = [0.74, 0.68, 0.72, 0.52, 0.90, 0.95];   // 基准转化率（与旅程看板一致）
+  var N = 800;
+
+  // 画像：digital 操作熟练 / patience 耐心 / price 价格敏感 / trust 信任
+  var PERSONAS = [
+    { key: 'white',  name: '都市白领·小林',   desc: '手机操作熟练，时间碎片化，利率随缘', w: 0.24, digital: 0.90, patience: 0.55, price: 0.50, trust: 0.70 },
+    { key: 'boss',   name: '个体工商户·王老板', desc: '资金周转需求急，嫌流程麻烦，砍价成性', w: 0.18, digital: 0.50, patience: 0.40, price: 0.80, trust: 0.60 },
+    { key: 'newbie', name: '首贷新手·小周',   desc: '第一次贷款，什么都要确认一遍才敢点',   w: 0.16, digital: 0.60, patience: 0.70, price: 0.60, trust: 0.40 },
+    { key: 'saver',  name: '精打细算·陈姐',   desc: '比价三家，为半个点利率可以等一周',     w: 0.15, digital: 0.55, patience: 0.80, price: 0.95, trust: 0.65 },
+    { key: 'rush',   name: '急用钱·老徐',     desc: '今天就要放款，多一步都嫌多',           w: 0.14, digital: 0.45, patience: 0.25, price: 0.30, trust: 0.55 },
+    { key: 'watch',  name: '谨慎观望·吴叔',   desc: '对线上贷款将信将疑，随时准备退出',     w: 0.13, digital: 0.35, patience: 0.60, price: 0.70, trust: 0.30 }
+  ];
+
+  // 各站间转换对特质的敏感度（正 = 特质高有利）
+  var SENS = [
+    { digital: 0.10, patience: 0.02, price: 0.00, trust: 0.16 },   // 发送→开始：敢不敢点进来
+    { digital: 0.12, patience: 0.10, price: 0.02, trust: 0.06 },   // 开始→提交：表单耐力
+    { digital: 0.08, patience: 0.08, price: 0.06, trust: 0.08 },   // 提交→卡验证
+    { digital: 0.22, patience: 0.14, price: 0.02, trust: 0.06 },   // 卡验证→签署：操作深水区
+    { digital: 0.04, patience: 0.04, price: 0.04, trust: 0.18 },   // 签署→放款：信任关口
+    { digital: 0.02, patience: 0.02, price: 0.02, trust: 0.04 }    // 放款→激活
+  ];
+  // 放弃原因归因顺序（取该站敏感度 × 特质缺口最大的一项）
+  var REASON = { digital: '操作受阻', patience: '失去耐心', price: '价格顾虑', trust: '信任不足' };
+
+  function hashSeed(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function cssv(name) { return getComputedStyle(document.querySelector('.atlas')).getPropertyValue(name).trim(); }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, attrs) { var e = document.createElementNS(NS, n); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function txt(x, y, str, cls, anchor) {
+    var t = el('text', { x: x, y: y, 'text-anchor': anchor || 'start' });
+    if (cls) t.setAttribute('class', cls);
+    t.textContent = str; return t;
+  }
+
+  // ── 客户批次（同一批客户走两组，保证公平对照） ────────
+  var seedTag = 1;
+  function makeCohort() {
+    var r = rng(hashSeed('cohort|' + seedTag));
+    var cohort = [];
+    for (var i = 0; i < N; i++) {
+      var pick = r(), acc = 0, p = PERSONAS[0];
+      for (var j = 0; j < PERSONAS.length; j++) { acc += PERSONAS[j].w; if (pick <= acc) { p = PERSONAS[j]; break; } }
+      cohort.push({
+        persona: p.key,
+        digital: clamp(p.digital + (r() - 0.5) * 0.24, 0.05, 0.98),
+        patience: clamp(p.patience + (r() - 0.5) * 0.24, 0.05, 0.98),
+        price: clamp(p.price + (r() - 0.5) * 0.24, 0.05, 0.98),
+        trust: clamp(p.trust + (r() - 0.5) * 0.24, 0.05, 0.98),
+        dice: (function () { var d = []; for (var k = 0; k < STAGES.length - 1; k++) d.push(r()); return d; })(),
+        rescueDice: (function () { var d = []; for (var k = 0; k < STAGES.length - 1; k++) d.push(r()); return d; })()
+      });
+    }
+    return cohort;
+  }
+
+  // ── 策略效应 ──────────────────────────────────────────
+  var BASELINE = { guide: false, countdown: false, cov: 0.40 };
+
+  function passProb(c, s, policy) {
+    var p = CONV[s];
+    var sen = SENS[s];
+    p += sen.digital * (c.digital - 0.5) * 2
+       + sen.patience * (c.patience - 0.5) * 2
+       + sen.price * (c.price - 0.5) * -0.4      /* 价格敏感本身略拖慢推进 */
+       + sen.trust * (c.trust - 0.5) * 2;
+    if (policy.guide && s === 3) p += 0.10 + 0.10 * (1 - c.digital);
+    if (policy.countdown && s >= 1 && s <= 3) p += 0.07 * c.price - 0.06 * (1 - c.patience);
+    p = clamp(p, 0.04, 0.99);
+    return p;
+  }
+
+  function simulate(cohort, policy) {
+    var arrived = STAGES.map(function () { return 0; });
+    var quits = {};             // reason -> n
+    var byPersona = {};         // key -> {n, done}
+    PERSONAS.forEach(function (p) { byPersona[p.key] = { n: 0, done: 0 }; });
+
+    cohort.forEach(function (c) {
+      byPersona[c.persona].n++;
+      arrived[0]++;
+      for (var s = 0; s < STAGES.length - 1; s++) {
+        var p = passProb(c, s, policy);
+        var pass = c.dice[s] < p;
+        if (!pass) {
+          // AI 主动介入挽回
+          var rescueP = policy.cov * (0.22 + 0.12 * (1 - c.trust));
+          if (c.rescueDice[s] < rescueP) pass = true;
+        }
+        if (!pass) {
+          var sen = SENS[s], worst = 'digital', worstGap = -1;
+          ['digital', 'patience', 'price', 'trust'].forEach(function (k) {
+            var gap = sen[k] * (k === 'price' ? c.price : (1 - c[k]));
+            if (gap > worstGap) { worstGap = gap; worst = k; }
+          });
+          quits[REASON[worst]] = (quits[REASON[worst]] || 0) + 1;
+          return;
+        }
+        arrived[s + 1]++;
+      }
+      byPersona[c.persona].done++;
+    });
+    return { arrived: arrived, quits: quits, byPersona: byPersona };
+  }
+
+  // ── 渲染 ──────────────────────────────────────────────
+  var state = { guide: false, countdown: false, cov: 0.40 };
+  var cohort = makeCohort();
+
+  function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
+  function pct(n) { return (n * 100).toFixed(1) + '%'; }
+
+  function renderJourney(base, plan) {
+    var svg = document.getElementById('journey'); svg.textContent = '';
+    var W = 920, rowH = 56, L = 118, R = 70, T = 14;
+    var defs = el('defs', {});
+    var pat = el('pattern', { id: 'dg', width: 26, height: 26, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(el('circle', { cx: 1, cy: 1, r: 0.9, fill: 'rgba(36,39,46,0.055)' }));
+    defs.appendChild(pat); svg.appendChild(defs);
+    svg.appendChild(el('rect', { x: 0, y: 0, width: 920, height: 430, fill: 'url(#dg)' }));
+
+    // 基线流失最重的一站（到达差绝对损失最大的转换的起点站）
+    var worstS = 0, worstLoss = -1;
+    for (var i = 0; i < STAGES.length - 1; i++) {
+      var loss = base.arrived[i] - base.arrived[i + 1];
+      if (loss > worstLoss) { worstLoss = loss; worstS = i; }
+    }
+
+    var maxN = base.arrived[0] || 1;
+    STAGES.forEach(function (name, s) {
+      var y = T + s * rowH;
+      var nameT = txt(L - 12, y + 22, (s + 1) + '. ' + name, 't-serif', 'end');
+      if (s === worstS) nameT.style.fill = cssv('--accent');
+      svg.appendChild(nameT);
+
+      var bw = W - L - R;
+      var b1 = base.arrived[s] / maxN * bw, b2 = plan.arrived[s] / maxN * bw;
+      svg.appendChild(el('rect', { x: L, y: y + 6, width: Math.max(1.5, b1), height: 13, rx: 0, fill: cssv('--blue-wash') }));
+      svg.appendChild(el('rect', { x: L, y: y + 6, width: Math.max(1.5, b1), height: 13, fill: 'none', stroke: cssv('--hairline') }));
+      svg.appendChild(el('rect', { x: L, y: y + 22, width: Math.max(1.5, b2), height: 13, fill: cssv('--blue') }));
+      // 数值
+      svg.appendChild(txt(L + Math.max(1.5, b1) + 8, y + 16.5, fmt(base.arrived[s]), null, 'start'));
+      var planT = txt(L + Math.max(1.5, b2) + 8, y + 32.5, fmt(plan.arrived[s]), 'nnum', 'start');
+      svg.appendChild(planT);
+      // Δ
+      var d = plan.arrived[s] - base.arrived[s];
+      if (s > 0 && d !== 0) {
+        var dT = txt(W - R + 8, y + 24, (d > 0 ? '+' : '') + d, null, 'start');
+        dT.style.fill = d > 0 ? cssv('--blue') : cssv('--accent');
+        dT.style.fontWeight = '700';
+        svg.appendChild(dT);
+      }
+    });
+  }
+
+  function renderReasons(plan) {
+    var root = document.getElementById('reasons'); root.textContent = '';
+    var entries = Object.keys(plan.quits).map(function (k) { return [k, plan.quits[k]]; })
+      .sort(function (a, b) { return b[1] - a[1]; });
+    var max = entries.length ? entries[0][1] : 1;
+    var total = entries.reduce(function (t, e) { return t + e[1]; }, 0);
+    entries.forEach(function (e) {
+      var row = document.createElement('div'); row.className = 'rrow';
+      var rn = document.createElement('span'); rn.className = 'rn'; rn.textContent = e[0]; row.appendChild(rn);
+      var rb = document.createElement('span'); rb.className = 'rb';
+      var bar = document.createElement('span'); bar.className = 'bar';
+      bar.style.width = Math.max(2, e[1] / max * 100 * 0.72) + '%';
+      rb.appendChild(bar);
+      var bv = document.createElement('span'); bv.className = 'bv';
+      bv.textContent = fmt(e[1]) + '（' + pct(e[1] / total) + '）';
+      rb.appendChild(bv);
+      row.appendChild(rb);
+      root.appendChild(row);
+    });
+  }
+
+  function renderPersonaTable(base, plan) {
+    var wrap = document.getElementById('persona-tbl'); wrap.textContent = '';
+    var tb = document.createElement('table');
+    var thead = document.createElement('thead'); var hr = document.createElement('tr');
+    ['客户画像', '人数', '基线转化', '方案转化', 'Δ 百分点'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
+    });
+    thead.appendChild(hr); tb.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    PERSONAS.forEach(function (p) {
+      var b = base.byPersona[p.key], q = plan.byPersona[p.key];
+      var br = b.n ? b.done / b.n : 0, pr = q.n ? q.done / q.n : 0;
+      var d = (pr - br) * 100;
+      var tr = document.createElement('tr');
+      var td0 = document.createElement('td');
+      td0.appendChild(document.createTextNode(p.name));
+      var pd = document.createElement('span'); pd.className = 'pdesc'; pd.textContent = p.desc; td0.appendChild(pd);
+      tr.appendChild(td0);
+      [fmt(b.n), pct(br), pct(pr)].forEach(function (c) {
+        var td = document.createElement('td'); td.textContent = c; tr.appendChild(td);
+      });
+      var tdD = document.createElement('td');
+      if (Math.abs(d) < 0.05) tdD.textContent = '≈0';
+      else {
+        var sp = document.createElement('span'); sp.className = d > 0 ? 'up' : 'down';
+        sp.textContent = (d > 0 ? '+' : '') + d.toFixed(1);
+        tdD.appendChild(sp);
+      }
+      tr.appendChild(tdD);
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);
+    wrap.appendChild(tb);
+  }
+
+  function run() {
+    var policy = { guide: state.guide, countdown: state.countdown, cov: state.cov };
+    var base = simulate(cohort, BASELINE);
+    var plan = simulate(cohort, policy);
+    var br = base.arrived[6] / N, pr = plan.arrived[6] / N;
+    document.getElementById('st-base').textContent = pct(br);
+    document.getElementById('st-plan').textContent = pct(pr);
+    var dEl = document.getElementById('st-delta');
+    var d = (pr - br) * 100;
+    dEl.textContent = (d > 0 ? '+' : '') + d.toFixed(1);
+    dEl.style.color = d < -0.05 ? cssv('--accent') : '';
+    document.getElementById('st-saved').textContent = (plan.arrived[6] - base.arrived[6] > 0 ? '+' : '') + (plan.arrived[6] - base.arrived[6]);
+    document.getElementById('run-meta').textContent = ('N=' + N + ' · COHORT #' + seedTag + ' · 双组同批对照').toUpperCase();
+    document.getElementById('meta').textContent = '六类画像 · 四维特质 · 七站旅程 · 三个策略杠杆';
+
+    renderJourney(base, plan);
+    renderReasons(plan);
+    renderPersonaTable(base, plan);
+
+    // 结论批注
+    var verdict = document.getElementById('verdict'); verdict.textContent = '';
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = '推演结论 · ';
+    verdict.appendChild(nm);
+    var parts = [];
+    if (state.guide) parts.push('验证引导');
+    if (state.countdown) parts.push('利率倒计时');
+    if (Math.abs(state.cov - BASELINE.cov) > 0.001) parts.push('AI 覆盖率 ' + Math.round(state.cov * 100) + '%');
+    var cfg = parts.length ? parts.join(' + ') : '与基线相同的配置';
+    var deltaTxt = Math.abs(d) < 0.05 ? '端到端转化基本持平' : '端到端转化' + (d > 0 ? '提升 ' : '下降 ') + Math.abs(d).toFixed(1) + ' 个百分点（' + (plan.arrived[6] - base.arrived[6] > 0 ? '+' : '') + (plan.arrived[6] - base.arrived[6]) + ' 人）';
+    // 找出受损画像
+    var hurt = PERSONAS.filter(function (p) {
+      var b = base.byPersona[p.key], q = plan.byPersona[p.key];
+      return b.n && q.n && (q.done / q.n - b.done / b.n) * 100 < -1;
+    }).map(function (p) { return p.name.split('·')[1]; });
+    var hurtTxt = hurt.length ? '；注意「' + hurt.join('、') + '」画像出现转化损伤，策略非普惠' : '';
+    verdict.appendChild(document.createTextNode('方案（' + cfg + '）下，' + deltaTxt + hurtTxt + '。同批客户对照，差异仅来自策略。'));
+  }
+
+  // ── 控件 ──────────────────────────────────────────────
+  [['lv-guide', 'guide'], ['lv-countdown', 'countdown']].forEach(function (pair) {
+    var btn = document.getElementById(pair[0]);
+    btn.addEventListener('click', function () {
+      state[pair[1]] = !state[pair[1]];
+      btn.setAttribute('aria-pressed', String(state[pair[1]]));
+      btn.textContent = state[pair[1]] ? '开' : '关';
+      run();
+    });
+  });
+  var cov = document.getElementById('lv-cov');
+  cov.addEventListener('input', function () {
+    state.cov = Number(cov.value) / 100;
+    document.getElementById('cov-val').textContent = cov.value + '%';
+    run();
+  });
+  document.getElementById('run-btn').addEventListener('click', run);
+  document.getElementById('reseed-btn').addEventListener('click', function () {
+    seedTag++;
+    cohort = makeCohort();
+    run();
+  });
+  document.getElementById('n-lab').textContent = String(N);
+
+  run();
+})();
+</script>
+</body>
+</html>
