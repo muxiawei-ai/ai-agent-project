@@ -1,0 +1,6 @@
+# 真实数据只存在本地，永不进入 Git（见 docs/data/spine.local.example.js）
+docs/data/spine.local.js
+
+# 常规
+.DS_Store
+node_modules/
