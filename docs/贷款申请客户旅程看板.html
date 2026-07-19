@@ -119,6 +119,31 @@
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
   .sbox { background: #fdfcf7; border: 1px solid var(--hairline); padding: 11px 12px 9px; }
   .sbox.ai-box { border-top: 2.5px solid var(--ai); }
+  .sbox.wo-box { border-top: 2.5px solid var(--blue); }
+  .sbox.acc-box { border-top: 2.5px solid var(--accent); }
+
+  /* ── 工单场景列表 ─────────────────── */
+  .wo-list { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .worow { display: grid; grid-template-columns: 128px 1fr; gap: 9px; align-items: center; padding: 3px 2px; }
+  .worow .wn { font-size: 12px; }
+  .worow .wb { display: flex; align-items: center; height: 12px; }
+  .worow .bar { height: 12px; border-radius: 0 3px 3px 0; background: var(--blue); min-width: 1px; }
+  .worow .bv { font-family: var(--mono); font-size: 10px; color: var(--ink-2); margin-left: 6px; white-space: nowrap; }
+  .worow .bv .od { color: var(--accent); font-weight: 700; }
+
+  /* ── 北极星观测 ───────────────────── */
+  .ns-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); gap: 10px; margin-top: 12px; }
+  @media (max-width: 720px) { .ns-hero { grid-template-columns: 1fr; } }
+  .ns-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-top: 14px; }
+  .ns-legend .sw { width: 11px; height: 11px; display: inline-block; margin-right: 5px; vertical-align: -1px; border-radius: 2px; }
+  .ns-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 9px; }
+  .nsr { display: grid; grid-template-columns: 168px 1fr; gap: 12px; align-items: center; }
+  .nsr .nsl { font-size: 12.5px; }
+  .nsr .nsl small { display: block; font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.06em; }
+  .nsr .bars { display: flex; flex-direction: column; gap: 2px; }
+  .nsr .brow2 { display: flex; align-items: center; height: 9px; }
+  .nsr .bar2 { height: 8px; border-radius: 0 3px 3px 0; min-width: 1px; }
+  .nsr .bv2 { font-family: var(--mono); font-size: 9.5px; color: var(--ink-2); margin-left: 6px; white-space: nowrap; }
   .sbox .v { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.05; }
   .sbox .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); margin-left: 2px; }
   .sbox .v.acc { color: var(--accent); }
@@ -234,7 +259,7 @@
           <span class="eyebrow" id="map-cap"></span>
         </div>
         <svg class="map-svg" id="map" viewBox="0 0 980 1180" role="group" aria-label="客户旅程地图：七个站点与当前停留人数，站点可选中下钻"></svg>
-        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数（微量值设 4px 可读下限）；<span style="color:var(--accent)">红色站点</span>为停留率最高的摩擦点（当前停留 ÷ 近3日到站）；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
+        <div class="figcap"><b>图 1</b> · 通道宽度 ∝ 期间进入人数（旅程自左上入口蜿蜒至左下终点，逐站收窄）；站点圆面积 ∝ 当前停留人数（微量值设 4px 可读下限）；<span style="color:var(--accent)">红色站点</span>为停留率最高的摩擦点（当前停留 ÷ 近3日到站）；站点外圈<span style="color:var(--ai)">琥珀色弧</span> = 该站停留客户中正被 AI 助手协助的占比（自 12 点方向顺时针）；主路旁的<span style="color:var(--blue)">虚线菱形</span>为工单服务站——该站已触发系统工单、由后台处理中的客户数（<span style="color:var(--accent)">红字</span>为超时件）。点击任一站点，右侧下钻该站停留客户的大区分布。</div>
       </div>
 
       <div class="panel">
@@ -265,16 +290,38 @@
           </div>
           <div class="note" id="ai-note" style="margin-top:9px"></div>
         </div>
+        <div class="wo">
+          <div class="eyebrow"><span class="no">06</span> · WORK ORDER LOOP</div>
+          <div class="stats" style="margin-top:10px">
+            <div class="sbox wo-box"><div class="v" id="wo-open">–</div><div class="l">在办工单<br>处理中 + 超时</div></div>
+            <div class="sbox acc-box"><div class="v" id="wo-overdue">–</div><div class="l">超时工单<br>SLA <span id="wo-sla">24</span>h</div></div>
+            <div class="sbox"><div class="v" id="wo-hours">–</div><div class="l">平均处理时长</div></div>
+            <div class="sbox wo-box"><div class="v" id="wo-return">–</div><div class="l">反馈后 24h<br>回流主旅程</div></div>
+          </div>
+          <div class="wo-list" id="wo-list"></div>
+          <div class="figcap"><b>图 3</b> · 在办工单的场景分布；<span style="color:var(--accent)">红字</span>为其中超时件数。</div>
+        </div>
       </div>
     </div>
 
     <div class="fig below">
       <div class="map-head">
+        <h2>协助推进观测</h2>
+        <span class="eyebrow"><span class="no">07</span> · NORTH STAR</span>
+      </div>
+      <div class="ns-hero" id="ns-hero"></div>
+      <div class="ns-legend" id="ns-legend"></div>
+      <div class="ns-rows" id="ns-rows"></div>
+      <div class="figcap"><b>图 4</b> · 北极星指标：停留客户 24 小时内推进到下一站的比例，按三种协助口径对比——未协助（自然推进）、AI 助手协助、工单反馈后回流。工单反馈后的推进率最高，说明"直接替客户把问题办掉"比"告诉客户怎么办"更能挽回转化；两者与未协助的差值即协助的净贡献。</div>
+    </div>
+
+    <div class="fig below">
+      <div class="map-head">
         <h2>每日进入用户趋势</h2>
-        <span class="eyebrow"><span class="no">06</span> · DAILY INFLOW</span>
+        <span class="eyebrow"><span class="no">08</span> · DAILY INFLOW</span>
       </div>
       <svg class="trend-svg" id="trend" viewBox="0 0 980 240" role="img" aria-label="每日进入用户趋势"></svg>
-      <div class="figcap"><b>图 3</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
+      <div class="figcap"><b>图 5</b> · 近 14 天到达「申请发送」站的每日人数，<span id="trend-cap"></span>。点阵填充面积随客流起伏。</div>
     </div>
 
     <div class="fig below">
@@ -283,11 +330,11 @@
         <button class="tbl-toggle" id="tbl-toggle" aria-expanded="false">展开表格</button>
       </div>
       <div class="tbl-wrap" id="tbl-wrap" hidden></div>
-      <div class="figcap"><b>图 4</b> · 各站点进入 / 转化 / 停留明细，含分大区停留列。</div>
+      <div class="figcap"><b>图 6</b> · 各站点进入 / 转化 / 停留 / 工单明细，含分大区停留列。</div>
     </div>
 
     <footer>
-      口径说明 —— 「期间进入」= 所选日期范围内首次到达该站的用户数；「当前停留」= 截至最近刷新时点仍停留在该站、未流转到下一站的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。
+      口径说明 —— 「期间进入」= 所选日期范围内首次到达该站的用户数；「当前停留」= 截至最近刷新时点仍停留在该站、未流转到下一站的用户数（快照口径，仅受大区筛选影响）；「合同激活」为旅程终点，不计停留。「在办工单」= 特定问题场景下已触发系统工单、由后台处理中的客户数（快照口径）；「反馈后回流率」= 工单反馈后 24h 内回到主旅程并推进的比例；「协助推进观测」三口径以 24h 内推进到下一站为准。
       本页为产品看板原型，数据由前端按日期种子模拟生成（每天刷新出新数值）；接入生产时替换 <code>loadData()</code> 为数仓 / API 查询即可，页面结构与交互不变。
     </footer>
 
@@ -395,6 +442,29 @@
       return Math.round(v * Math.min(0.9, AI_COV[s] * (0.85 + r() * 0.3)));
     });
   });
+
+  // 工单闭环快照：特定问题场景下停留客户触发的系统工单（后台处理→反馈→回流）
+  var WO_META = (window.JOURNEY_SPINE && window.JOURNEY_SPINE.workorders) || {
+    slaHours: 24,
+    scenarios: [
+      { id: 'WO-01', name: '预留手机号不一致', station: 3, weight: 0.30 },
+      { id: 'WO-02', name: '银行卡类型不支持', station: 3, weight: 0.14 },
+      { id: 'WO-03', name: '人脸识别反复失败', station: 1, weight: 0.16 },
+      { id: 'WO-04', name: '收入证明补件',     station: 2, weight: 0.15 },
+      { id: 'WO-05', name: '签约验证码接收异常', station: 4, weight: 0.13 },
+      { id: 'WO-06', name: '放款账户校验异常',  station: 5, weight: 0.12 }
+    ]
+  };
+  // WOT[ri][k] = { n 在办, overdue 其中超时, fed 已反馈待回流 }
+  var WOT = REGIONS.map(function (_, ri) {
+    var r = rng(hashSeed('wo|' + dstr(daysAgo(0)) + '|' + REGIONS[ri]));
+    return WO_META.scenarios.map(function (sc) {
+      var n = Math.round(STUCK[ri][sc.station] * sc.weight * (0.8 + r() * 0.4));
+      var overdue = Math.round(n * (0.06 + r() * 0.1));
+      var fed = Math.round(n * (0.2 + r() * 0.14));
+      return { n: n, overdue: Math.min(overdue, n), fed: Math.min(fed, Math.max(0, n - overdue)) };
+    });
+  });
   // 默认下钻站点 = 当前停留率最高的站（最大摩擦点：停留 ÷ 近3日到站）
   var initStage = 0, initMax = -1;
   for (var si = 0; si < STAGES.length - 1; si++) {
@@ -433,6 +503,35 @@
     }
     return t;
   }
+  // 工单汇总（受大区筛选影响）
+  function woScen(k) {
+    var t = { n: 0, overdue: 0, fed: 0 };
+    for (var ri = 0; ri < REGIONS.length; ri++) {
+      if (state.region !== -1 && ri !== state.region) continue;
+      t.n += WOT[ri][k].n; t.overdue += WOT[ri][k].overdue; t.fed += WOT[ri][k].fed;
+    }
+    return t;
+  }
+  function woStation(stage) {
+    var t = { n: 0, overdue: 0 };
+    WO_META.scenarios.forEach(function (sc, k) {
+      if (sc.station !== stage) return;
+      var v = woScen(k);
+      t.n += v.n; t.overdue += v.overdue;
+    });
+    return t;
+  }
+  // 24h 站间推进率（北极星）：未协助 / AI 协助 / 工单反馈后 三口径（按日期+筛选种子的演示值）
+  function assistRates() {
+    var r = rng(hashSeed('ns|' + dstr(daysAgo(0)) + '|' + regionName()));
+    return CONV.map(function (c) {
+      var base = Math.max(0.12, Math.min(0.9, c * (0.5 + r() * 0.12)));
+      var ai = Math.min(0.95, base * (1.35 + r() * 0.25));
+      var wo = Math.min(0.95, base * (1.55 + r() * 0.3));
+      return { base: base, ai: ai, wo: wo };
+    });
+  }
+
   // 最大摩擦点 = 停留率（当前停留 ÷ 近3日到站）最高的站，随大区筛选变化
   function frictionOf() {
     var best = 0, bestRate = -1;
@@ -492,9 +591,14 @@
     { x: 320, y: 1105, st: 6 }
   ];
   var SP = ROUTE.filter(function (p) { return p.st !== undefined; });   // 站点路点
-  var BOX = [   // 注释框左上角（nx/ny 可覆盖停留数字位置）
-    { x: 30,  y: 30 },  { x: 600, y: 38 },  { x: 776, y: 470 }, { x: 30,  y: 450 },
-    { x: 255, y: 906 }, { x: 790, y: 1088, nx: 896, ny: 990 }, { x: 95, y: 985 }
+  var BOX = [   // 注释框左上角（nx/ny 覆盖停留数字位；wx/wy 为工单服务站位置）
+    { x: 30,  y: 30 },
+    { x: 600, y: 38,  wx: 800, wy: 92 },
+    { x: 776, y: 470, wx: 560, wy: 512 },
+    { x: 30,  y: 450, wx: 305, wy: 648 },
+    { x: 255, y: 906, wx: 512, wy: 752 },
+    { x: 790, y: 1088, nx: 896, ny: 990, wx: 912, wy: 928 },
+    { x: 95, y: 985 }
   ];
   var BW = 168, BH = 48;
 
@@ -673,6 +777,8 @@
           if (e3) rows.push({ color: 'transparent', value: pct(stuck / e3), label: '停留率 · 停留÷近3日到站' });
           var aiN = aiOf(s);
           rows.push({ color: cssv('--ai'), value: fmt(aiN), label: 'AI 协助中' + (stuck ? ' · 占停留 ' + pct(aiN / stuck) : '') });
+          var wS = woStation(s);
+          if (wS.n) rows.push({ color: blue, value: fmt(wS.n), label: '在办工单' + (wS.overdue ? '（超时 ' + wS.overdue + '）' : '') });
         }
         if (s > 0) rows.push({ color: 'transparent', value: data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–', label: '上站转化' });
         var tx, ty;
@@ -685,6 +791,60 @@
       g.addEventListener('pointerleave', tipHide);
       g.addEventListener('blur', tipHide);
       svg.appendChild(g);
+    });
+
+    // 工单服务站：主路旁的处理支线（客户驶入 → 后台处理 → 反馈回流）
+    STAGES.forEach(function (_, s) {
+      if (s >= STAGES.length - 1) return;
+      var b = BOX[s];
+      if (b.wx === undefined) return;
+      var w = woStation(s);
+      if (!w.n) return;
+      var p = SP[s];
+      var blue = cssv('--blue');
+      var gw = el('g', { tabindex: 0, role: 'img' }, 'st');
+      gw.setAttribute('aria-label', STAGES[s] + ' 工单服务站：在办 ' + w.n + ' 件' + (w.overdue ? '，超时 ' + w.overdue + ' 件' : ''));
+      // 虚线支线
+      var dx = b.wx - p.x, dy = b.wy - p.y, dist = Math.hypot(dx, dy) || 1;
+      var sx = p.x + dx / dist * 14, sy = p.y + dy / dist * 14;
+      var ex = b.wx - dx / dist * 12, ey = b.wy - dy / dist * 12;
+      gw.appendChild(el('path', {
+        d: 'M' + sx.toFixed(1) + ' ' + sy.toFixed(1) + ' L' + ex.toFixed(1) + ' ' + ey.toFixed(1),
+        stroke: blue, 'stroke-width': 1, 'stroke-dasharray': '3 4', fill: 'none', opacity: 0.75
+      }));
+      // 菱形服务站
+      gw.appendChild(el('path', {
+        d: 'M' + b.wx + ' ' + (b.wy - 8) + ' L' + (b.wx + 8) + ' ' + b.wy + ' L' + b.wx + ' ' + (b.wy + 8) + ' L' + (b.wx - 8) + ' ' + b.wy + ' Z',
+        fill: cssv('--paper'), stroke: blue, 'stroke-width': 1.6
+      }));
+      gw.appendChild(el('circle', { cx: b.wx, cy: b.wy, r: 2, fill: blue }));
+      var lt = txt(b.wx, b.wy + 22, '工单 ' + fmt(w.n), 'conv-l', 'middle');
+      gw.appendChild(lt);
+      if (w.overdue) {
+        var ot = txt(b.wx, b.wy + 35, '超时 ' + w.overdue, 'conv-l', 'middle');
+        ot.style.fill = cssv('--accent'); ot.style.fontWeight = '700';
+        gw.appendChild(ot);
+      }
+      // 悬停：该站工单的场景拆分
+      function woTip(ev) {
+        var rows = [];
+        WO_META.scenarios.forEach(function (sc, k) {
+          if (sc.station !== s) return;
+          var v = woScen(k);
+          if (v.n) rows.push({ color: blue, value: fmt(v.n), label: sc.name + (v.overdue ? '（超时 ' + v.overdue + '）' : '') });
+        });
+        rows.push({ color: 'transparent', value: fmt(w.fed || 0), label: '已反馈 · 待回流' });
+        var tx2, ty2;
+        if (ev && ev.clientX !== undefined) { tx2 = ev.clientX; ty2 = ev.clientY; }
+        else { var rc = gw.getBoundingClientRect(); tx2 = rc.left + rc.width / 2; ty2 = rc.top; }
+        tipShow(tx2, ty2, STAGES[s] + ' · 工单服务站 · ' + regionName(), rows);
+      }
+      w.fed = WO_META.scenarios.reduce(function (t, sc, k) { return sc.station === s ? t + woScen(k).fed : t; }, 0);
+      gw.addEventListener('pointermove', woTip);
+      gw.addEventListener('focus', woTip);
+      gw.addEventListener('pointerleave', tipHide);
+      gw.addEventListener('blur', tipHide);
+      svg.appendChild(gw);
     });
   }
 
@@ -806,6 +966,104 @@
     });
   }
 
+  // ── 工单闭环面板 ──────────────────────────────────────
+  function renderWoPanel() {
+    var open = 0, overdue = 0, fed = 0;
+    WO_META.scenarios.forEach(function (_, k) {
+      var v = woScen(k);
+      open += v.n; overdue += v.overdue; fed += v.fed;
+    });
+    var r = rng(hashSeed('woKpi|' + dstr(daysAgo(0)) + '|' + regionName()));
+    document.getElementById('wo-open').textContent = fmt(open);
+    document.getElementById('wo-overdue').textContent = fmt(overdue);
+    document.getElementById('wo-sla').textContent = String(WO_META.slaHours);
+    document.getElementById('wo-hours').textContent = (6 + r() * 8).toFixed(1) + 'h';
+    document.getElementById('wo-return').textContent = pct(0.55 + r() * 0.18);
+
+    var root = document.getElementById('wo-list'); root.textContent = '';
+    var rows = WO_META.scenarios.map(function (sc, k) { return { sc: sc, v: woScen(k) }; })
+      .filter(function (x) { return x.v.n > 0; })
+      .sort(function (a, b) { return b.v.n - a.v.n; });
+    var max = rows.length ? rows[0].v.n : 1;
+    rows.forEach(function (x) {
+      var row = document.createElement('div'); row.className = 'worow';
+      var wn = document.createElement('span'); wn.className = 'wn'; wn.textContent = x.sc.name; row.appendChild(wn);
+      var wb = document.createElement('span'); wb.className = 'wb';
+      var bar = document.createElement('span'); bar.className = 'bar';
+      bar.style.width = Math.max(2, x.v.n / max * 100 * 0.6) + '%';
+      wb.appendChild(bar);
+      var bv = document.createElement('span'); bv.className = 'bv';
+      bv.appendChild(document.createTextNode(fmt(x.v.n)));
+      if (x.v.overdue) {
+        bv.appendChild(document.createTextNode(' · '));
+        var od = document.createElement('span'); od.className = 'od'; od.textContent = '超' + x.v.overdue;
+        bv.appendChild(od);
+      }
+      wb.appendChild(bv);
+      row.appendChild(wb);
+      root.appendChild(row);
+    });
+  }
+
+  // ── 北极星观测：24h 站间推进率三口径 ──────────────────
+  function renderNorthStar(data) {
+    var rates = assistRates();
+    var SERIES = [
+      { k: 'base', n: '未协助（自然推进）', c: cssv('--muted') },
+      { k: 'ai', n: 'AI 助手协助', c: cssv('--ai') },
+      { k: 'wo', n: '工单反馈后', c: cssv('--blue') }
+    ];
+    // 加权汇总（按各站期间进入加权）
+    var agg = { base: 0, ai: 0, wo: 0 }, wsum = 0;
+    rates.forEach(function (rt, s) {
+      var w = data.entered[s] || 0;
+      wsum += w;
+      agg.base += rt.base * w; agg.ai += rt.ai * w; agg.wo += rt.wo * w;
+    });
+    var hero = document.getElementById('ns-hero'); hero.textContent = '';
+    SERIES.forEach(function (se) {
+      var box = document.createElement('div');
+      box.className = 'sbox' + (se.k === 'ai' ? ' ai-box' : se.k === 'wo' ? ' wo-box' : '');
+      var v = document.createElement('div'); v.className = 'v';
+      v.textContent = wsum ? pct(agg[se.k] / wsum) : '–';
+      box.appendChild(v);
+      var l = document.createElement('div'); l.className = 'l'; l.textContent = se.n;
+      box.appendChild(l);
+      hero.appendChild(box);
+    });
+
+    var legend = document.getElementById('ns-legend'); legend.textContent = '';
+    SERIES.forEach(function (se) {
+      var sp = document.createElement('span');
+      var sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = se.c;
+      sp.appendChild(sw); sp.appendChild(document.createTextNode(se.n));
+      legend.appendChild(sp);
+    });
+
+    var root = document.getElementById('ns-rows'); root.textContent = '';
+    rates.forEach(function (rt, s) {
+      var row = document.createElement('div'); row.className = 'nsr';
+      var lab = document.createElement('span'); lab.className = 'nsl';
+      lab.appendChild(document.createTextNode(STAGES[s] + ' → ' + STAGES[s + 1]));
+      var sm = document.createElement('small'); sm.textContent = '停留 ' + fmt(stuckOf(s)) + ' · 工单 ' + fmt(woStation(s).n);
+      lab.appendChild(sm);
+      row.appendChild(lab);
+      var bars = document.createElement('span'); bars.className = 'bars';
+      SERIES.forEach(function (se) {
+        var brow = document.createElement('span'); brow.className = 'brow2';
+        var bar = document.createElement('span'); bar.className = 'bar2';
+        bar.style.background = se.c;
+        bar.style.width = (rt[se.k] * 100 * 0.68) + '%';
+        brow.appendChild(bar);
+        var bv = document.createElement('span'); bv.className = 'bv2'; bv.textContent = pct(rt[se.k]);
+        brow.appendChild(bv);
+        bars.appendChild(brow);
+      });
+      row.appendChild(bars);
+      root.appendChild(row);
+    });
+  }
+
   // ── 趋势图（点阵面积） ────────────────────────────────
   function renderTrend(data) {
     document.getElementById('trend-cap').textContent = regionName() + '口径';
@@ -873,7 +1131,7 @@
     var wrap = document.getElementById('tbl-wrap'); wrap.textContent = '';
     var tb = document.createElement('table');
     var thead = document.createElement('thead'); var hr = document.createElement('tr');
-    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留', 'AI协助中'].concat(
+    ['旅程站点', rangeName() + '进入', '上站转化', '当前停留', 'AI协助中', '在办工单'].concat(
       REGIONS.map(function (r) { return '停留·' + r; })
     ).forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
     thead.appendChild(hr); tb.appendChild(thead);
@@ -886,7 +1144,8 @@
         fmt(data.entered[s]),
         s === 0 ? '–' : (data.entered[s - 1] ? pct(data.entered[s] / data.entered[s - 1]) : '–'),
         isLast ? '–' : fmt(stuckOf(s)),
-        isLast ? '–' : fmt(aiOf(s))
+        isLast ? '–' : fmt(aiOf(s)),
+        isLast ? '–' : fmt(woStation(s).n)
       ].concat(REGIONS.map(function (_, ri) { return isLast ? '–' : fmt(STUCK[ri][s]); }))
       .forEach(function (c) { var td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
       tbody.appendChild(tr);
@@ -912,6 +1171,8 @@
     renderDrill();
     renderIndex(data);
     renderAiPanel(data);
+    renderWoPanel();
+    renderNorthStar(data);
     renderTrend(data);
     renderTable(data);
   }

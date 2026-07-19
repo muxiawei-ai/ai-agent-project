@@ -9,7 +9,7 @@
  * 门户页会显示脊柱的接入状态与版本。
  */
 window.JOURNEY_SPINE = {
-  version: 'v1 · 2026-07-18 · 演示数据',
+  version: 'v1.1 · 2026-07-19 · 演示数据',
 
   journey: {
     stages: ['申请发送', '开始操作', '提交申请', '还款卡验证', '签署电子合同', '提交放款', '合同激活'],
@@ -17,6 +17,20 @@ window.JOURNEY_SPINE = {
     regions: ['华东', '华南', '华北', '华中', '西南', '西北'],
     regionWeights: [1.35, 1.15, 1.0, 0.85, 0.7, 0.45],
     baseDaily: 620                                  // 全国日均申请发送基数
+  },
+
+  // 工单闭环：特定问题场景下（客户提供部分信息 + 后台抓取部分信息）直接触发系统工单，
+  // 后台人员处理并反馈，客户回流主旅程。station 为触发站点下标，weight 为场景占比。
+  workorders: {
+    slaHours: 24,   // 处理时效承诺
+    scenarios: [
+      { id: 'WO-01', name: '预留手机号不一致', station: 3, weight: 0.30 },
+      { id: 'WO-02', name: '银行卡类型不支持', station: 3, weight: 0.14 },
+      { id: 'WO-03', name: '人脸识别反复失败', station: 1, weight: 0.16 },
+      { id: 'WO-04', name: '收入证明补件',     station: 2, weight: 0.15 },
+      { id: 'WO-05', name: '签约验证码接收异常', station: 4, weight: 0.13 },
+      { id: 'WO-06', name: '放款账户校验异常',  station: 5, weight: 0.12 }
+    ]
   },
 
   sessions: [
