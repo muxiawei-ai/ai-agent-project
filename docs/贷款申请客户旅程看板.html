@@ -312,7 +312,7 @@
       <div class="ns-hero" id="ns-hero"></div>
       <div class="ns-legend" id="ns-legend"></div>
       <div class="ns-rows" id="ns-rows"></div>
-      <div class="figcap"><b>图 4</b> · 北极星指标：停留客户 24 小时内推进到下一站的比例，按三种协助口径对比——未协助（自然推进）、AI 助手协助、工单反馈后回流。工单反馈后的推进率最高，说明"直接替客户把问题办掉"比"告诉客户怎么办"更能挽回转化；两者与未协助的差值即协助的净贡献。</div>
+      <div class="figcap"><b>图 4</b> · 北极星指标：停留客户 24 小时内推进到下一站的比例，按三种协助口径对比——未协助（自然推进）、AI 助手协助、工单反馈后回流；汇总按停留量加权，无在办工单的站间段不计工单口径（显示 –）。<span style="color:var(--accent)">本区数值为演示示意</span>：真实归因存在选择偏差（主动求助的客户推进意愿本就更强），上线时需以同站同画像对照或小流量随机实验测算净效应，不能直接以三口径差值作因果结论。</div>
     </div>
 
     <div class="fig below">
@@ -344,6 +344,7 @@
 <div class="tip" id="tip"></div>
 
 <script src="data/spine.js"></script>
+<script src="data/spine.local.js"></script>
 <script>
 (function () {
   'use strict';
@@ -452,7 +453,7 @@
       { id: 'WO-03', name: '人脸识别反复失败', station: 1, weight: 0.16 },
       { id: 'WO-04', name: '收入证明补件',     station: 2, weight: 0.15 },
       { id: 'WO-05', name: '签约验证码接收异常', station: 4, weight: 0.13 },
-      { id: 'WO-06', name: '放款账户校验异常',  station: 5, weight: 0.12 }
+      { id: 'WO-06', name: '放款账户校验异常',  station: 5, weight: 0.45 }
     ]
   };
   // WOT[ri][k] = { n 在办, overdue 其中超时, fed 已反馈待回流 }
@@ -1013,19 +1014,22 @@
       { k: 'ai', n: 'AI 助手协助', c: cssv('--ai') },
       { k: 'wo', n: '工单反馈后', c: cssv('--blue') }
     ];
-    // 加权汇总（按各站期间进入加权）
-    var agg = { base: 0, ai: 0, wo: 0 }, wsum = 0;
+    // 加权汇总：指标语义是"停留客户的推进率"，按各站停留量加权；
+    // 工单口径只在有在办工单的站间段上聚合（无样本不出比率）
+    var agg = { base: 0, ai: 0, wo: 0 }, wBase = 0, wWo = 0;
     rates.forEach(function (rt, s) {
-      var w = data.entered[s] || 0;
-      wsum += w;
-      agg.base += rt.base * w; agg.ai += rt.ai * w; agg.wo += rt.wo * w;
+      var w = stuckOf(s) || 0;
+      wBase += w;
+      agg.base += rt.base * w; agg.ai += rt.ai * w;
+      if (woStation(s).n > 0) { agg.wo += rt.wo * w; wWo += w; }
     });
     var hero = document.getElementById('ns-hero'); hero.textContent = '';
     SERIES.forEach(function (se) {
       var box = document.createElement('div');
       box.className = 'sbox' + (se.k === 'ai' ? ' ai-box' : se.k === 'wo' ? ' wo-box' : '');
       var v = document.createElement('div'); v.className = 'v';
-      v.textContent = wsum ? pct(agg[se.k] / wsum) : '–';
+      if (se.k === 'wo') v.textContent = wWo ? pct(agg.wo / wWo) : '–';
+      else v.textContent = wBase ? pct(agg[se.k] / wBase) : '–';
       box.appendChild(v);
       var l = document.createElement('div'); l.className = 'l'; l.textContent = se.n;
       box.appendChild(l);
@@ -1048,15 +1052,23 @@
       var sm = document.createElement('small'); sm.textContent = '停留 ' + fmt(stuckOf(s)) + ' · 工单 ' + fmt(woStation(s).n);
       lab.appendChild(sm);
       row.appendChild(lab);
+      var noWo = woStation(s).n === 0;
       var bars = document.createElement('span'); bars.className = 'bars';
       SERIES.forEach(function (se) {
         var brow = document.createElement('span'); brow.className = 'brow2';
-        var bar = document.createElement('span'); bar.className = 'bar2';
-        bar.style.background = se.c;
-        bar.style.width = (rt[se.k] * 100 * 0.68) + '%';
-        brow.appendChild(bar);
-        var bv = document.createElement('span'); bv.className = 'bv2'; bv.textContent = pct(rt[se.k]);
-        brow.appendChild(bv);
+        if (se.k === 'wo' && noWo) {
+          var bv0 = document.createElement('span'); bv0.className = 'bv2';
+          bv0.style.marginLeft = '0';
+          bv0.textContent = '–（该站无在办工单）';
+          brow.appendChild(bv0);
+        } else {
+          var bar = document.createElement('span'); bar.className = 'bar2';
+          bar.style.background = se.c;
+          bar.style.width = (rt[se.k] * 100 * 0.68) + '%';
+          brow.appendChild(bar);
+          var bv = document.createElement('span'); bv.className = 'bv2'; bv.textContent = pct(rt[se.k]);
+          brow.appendChild(bv);
+        }
         bars.appendChild(brow);
       });
       row.appendChild(bars);

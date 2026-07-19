@@ -144,8 +144,13 @@
               <div class="ld">全流程展示"活动利率剩余 N 天"。对价格敏感客户形成紧迫感、加速推进；但对低耐心客户可能构成压力、加剧放弃——是一把双刃剑。</div>
             </div>
             <div class="lever">
+              <button class="sw" id="lv-wo" aria-pressed="false">关</button>
+              <span class="ln">③ 问题场景直转工单</span>
+              <div class="ld">对六类问题场景（卡验证失败、人脸失败、补件等），AI 收集信息后直接触发系统工单、后台办结反馈——客户不必自己离开旅程去解决问题。对操作不熟练客户提升最大。</div>
+            </div>
+            <div class="lever">
               <span class="lv" id="cov-val">40%</span>
-              <span class="ln">③ AI 助手主动介入覆盖率</span>
+              <span class="ln">④ AI 助手主动介入覆盖率</span>
               <div class="ld">对停留客户主动触达协助的比例（当前现状为 40%）。拖动滑杆推演加大或收缩 AI 投入的效果。
                 <input type="range" id="lv-cov" min="0" max="100" step="5" value="40" aria-label="AI 主动介入覆盖率">
               </div>
@@ -156,7 +161,7 @@
             <button class="btn" id="reseed-btn">换一批客户</button>
             <span class="flabel" id="run-meta">–</span>
           </div>
-          <div class="figcap"><b>图 1</b> · 每次推演放行 <span id="n-lab">800</span> 名虚拟客户走完七站旅程：基线组按现状参数（三项策略均为现状值），方案组按上方控制台配置；两组使用同一批客户，差异全部来自策略本身。</div>
+          <div class="figcap"><b>图 1</b> · 每次推演放行 <span id="n-lab">800</span> 名虚拟客户走完七站旅程：基线组按现状参数（各策略杠杆均为现状值），方案组按上方控制台配置；两组使用同一批客户，差异全部来自策略本身。</div>
         </div>
 
         <div class="fig below">
@@ -165,7 +170,7 @@
             <span class="eyebrow">03 · A/B FUNNEL</span>
           </div>
           <svg class="journey-svg" id="journey" viewBox="0 0 920 430" role="img" aria-label="基线与方案的逐站到达人数对照"></svg>
-          <div class="figcap"><b>图 2</b> · 每站两条到达条：上为<span style="color:var(--muted)">基线（灰蓝）</span>、下为<span style="color:var(--blue)">方案（石板蓝）</span>；站名下方为方案相对基线的到达增减。<span style="color:var(--accent)">红色站名</span>为基线流失最重的一站。</div>
+          <div class="figcap"><b>图 2</b> · 每站两条到达条：上为<span style="color:var(--muted)">基线（灰蓝）</span>、下为<span style="color:var(--blue)">方案（石板蓝）</span>；条形右端为方案相对基线的到达增减。<span style="color:var(--accent)">红色站名</span>为基线流失最重的一站。</div>
         </div>
 
         <div class="fig below">
@@ -206,6 +211,7 @@
 </div>
 
 <script src="data/spine.js"></script>
+<script src="data/spine.local.js"></script>
 <script>
 (function () {
   'use strict';
@@ -284,7 +290,12 @@
   }
 
   // ── 策略效应 ──────────────────────────────────────────
-  var BASELINE = { guide: false, countdown: false, cov: 0.40 };
+  var BASELINE = { guide: false, countdown: false, wo: false, cov: 0.40 };
+  // 工单直办覆盖的站间段（来自脊柱的问题场景定义，缺失时回落）
+  var WO_ST = {};
+  ((((window.JOURNEY_SPINE || {}).workorders) || {}).scenarios ||
+    [{ station: 1 }, { station: 2 }, { station: 3 }, { station: 4 }, { station: 5 }]
+  ).forEach(function (sc) { WO_ST[sc.station] = true; });
 
   function passProb(c, s, policy) {
     var p = CONV[s];
@@ -295,6 +306,7 @@
        + sen.trust * (c.trust - 0.5) * 2;
     if (policy.guide && s === 3) p += 0.10 + 0.10 * (1 - c.digital);
     if (policy.countdown && s >= 1 && s <= 3) p += 0.07 * c.price - 0.06 * (1 - c.patience);
+    if (policy.wo && WO_ST[s]) p += 0.09 + 0.09 * (1 - c.digital);
     p = clamp(p, 0.04, 0.99);
     return p;
   }
@@ -333,7 +345,7 @@
   }
 
   // ── 渲染 ──────────────────────────────────────────────
-  var state = { guide: false, countdown: false, cov: 0.40 };
+  var state = { guide: false, countdown: false, wo: false, cov: 0.40 };
   var cohort = makeCohort();
 
   function fmt(n) { return Math.round(n).toLocaleString('zh-CN'); }
@@ -439,7 +451,7 @@
   }
 
   function run() {
-    var policy = { guide: state.guide, countdown: state.countdown, cov: state.cov };
+    var policy = { guide: state.guide, countdown: state.countdown, wo: state.wo, cov: state.cov };
     var base = simulate(cohort, BASELINE);
     var plan = simulate(cohort, policy);
     var br = base.arrived[6] / N, pr = plan.arrived[6] / N;
@@ -451,7 +463,7 @@
     dEl.style.color = d < -0.05 ? cssv('--accent') : '';
     document.getElementById('st-saved').textContent = (plan.arrived[6] - base.arrived[6] > 0 ? '+' : '') + (plan.arrived[6] - base.arrived[6]);
     document.getElementById('run-meta').textContent = ('N=' + N + ' · COHORT #' + seedTag + ' · 双组同批对照').toUpperCase();
-    document.getElementById('meta').textContent = '六类画像 · 四维特质 · 七站旅程 · 三个策略杠杆';
+    document.getElementById('meta').textContent = '六类画像 · 四维特质 · 七站旅程 · 四个策略杠杆';
 
     renderJourney(base, plan);
     renderReasons(plan);
@@ -464,6 +476,7 @@
     var parts = [];
     if (state.guide) parts.push('验证引导');
     if (state.countdown) parts.push('利率倒计时');
+    if (state.wo) parts.push('工单直办');
     if (Math.abs(state.cov - BASELINE.cov) > 0.001) parts.push('AI 覆盖率 ' + Math.round(state.cov * 100) + '%');
     var cfg = parts.length ? parts.join(' + ') : '与基线相同的配置';
     var deltaTxt = Math.abs(d) < 0.05 ? '端到端转化基本持平' : '端到端转化' + (d > 0 ? '提升 ' : '下降 ') + Math.abs(d).toFixed(1) + ' 个百分点（' + (plan.arrived[6] - base.arrived[6] > 0 ? '+' : '') + (plan.arrived[6] - base.arrived[6]) + ' 人）';
@@ -477,7 +490,7 @@
   }
 
   // ── 控件 ──────────────────────────────────────────────
-  [['lv-guide', 'guide'], ['lv-countdown', 'countdown']].forEach(function (pair) {
+  [['lv-guide', 'guide'], ['lv-countdown', 'countdown'], ['lv-wo', 'wo']].forEach(function (pair) {
     var btn = document.getElementById(pair[0]);
     btn.addEventListener('click', function () {
       state[pair[1]] = !state[pair[1]];

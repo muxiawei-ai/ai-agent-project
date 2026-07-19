@@ -372,10 +372,16 @@
     var pn = document.createElement('div'); pn.className = 'pn';
     pn.textContent = '总分 ' + total + ' / ' + max + '（' + Math.round(total / max * 100) + '%）';
     p.appendChild(pn);
-    var weak = DIMS.slice().sort(function (a, b) { return dims[a.k] - dims[b.k]; })[0];
-    var strong = DIMS.slice().sort(function (a, b) { return dims[b.k] - dims[a.k]; })[0];
+    var sorted = DIMS.slice().sort(function (a, b) { return dims[a.k] - dims[b.k]; });
+    var weak = sorted[0], strong = sorted[sorted.length - 1];
     var pd = document.createElement('div'); pd.className = 'pd';
-    pd.textContent = '最强维度「' + strong.n + '」（' + dims[strong.k] + '/' + EXERCISES.length + '）；最需要补的维度「' + weak.n + '」（' + dims[weak.k] + '/' + EXERCISES.length + '）——' + weak.d + '。建议回看该维度失分的题目，重点读「讲解」与「曾经的失守」。';
+    if (dims[weak.k] === dims[strong.k]) {
+      pd.textContent = dims[weak.k] >= EXERCISES.length
+        ? '四个维度全部满分——去红队测试台找更难的场景挑战，或把你的应答沉淀进话术库当范例。'
+        : '四个维度得分持平（各 ' + dims[weak.k] + '/' + EXERCISES.length + '），没有显著短板；建议整体重练下方得分 ≤2 的题目。';
+    } else {
+      pd.textContent = '最强维度「' + strong.n + '」（' + dims[strong.k] + '/' + EXERCISES.length + '）；最需要补的维度「' + weak.n + '」（' + dims[weak.k] + '/' + EXERCISES.length + '）——' + weak.d + '。建议回看该维度失分的题目，重点读「讲解」与「曾经的失守」。';
+    }
     p.appendChild(pd);
     root.appendChild(p);
 

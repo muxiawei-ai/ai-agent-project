@@ -382,7 +382,8 @@
   function renderList() {
     var root = document.getElementById('case-list'); root.textContent = '';
     var list = filtered();
-    if (list.length && !list.some(function (c) { return c.id === state.sel; })) state.sel = list[0].id;
+    if (!list.length) state.sel = null;
+    else if (!list.some(function (c) { return c.id === state.sel; })) state.sel = list[0].id;
     list.forEach(function (c) {
       var row = document.createElement('button'); row.className = 'case-row';
       row.setAttribute('aria-pressed', String(c.id === state.sel));
@@ -407,7 +408,15 @@
     var head = document.getElementById('detail-head'); head.textContent = '';
     var stage = document.getElementById('detail-stage'); stage.textContent = '';
     var verdict = document.getElementById('detail-verdict'); verdict.textContent = '';
-    if (!c) return;
+    verdict.style.display = c ? '' : 'none';
+    if (!c) {
+      var none = document.createElement('div');
+      none.className = 'figcap';
+      none.style.marginTop = '4px';
+      none.textContent = '当前筛选组合下没有用例——换一个攻击面或判定，或补充该组合的测试用例（这也是覆盖缺口的信号）。';
+      head.appendChild(none);
+      return;
+    }
 
     var h2 = document.createElement('h2'); h2.textContent = c.id + ' · ' + c.name;
     head.appendChild(h2);
